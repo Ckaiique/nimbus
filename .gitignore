@@ -1,0 +1,21 @@
+# Programas compilados (quem clonar gera os seus com o compilar.bat)
+#
+# A pasta build/ inteira fica de fora, e não só os ".exe": o compilador deixa
+# arquivos de rascunho ali (nimbus.exe~) e às vezes um .zip para distribuir.
+# Juntos, passam de 40 MB — e o Git guarda tudo isso PARA SEMPRE, mesmo que a
+# gente apague depois. Quem clonasse o projeto baixaria esse peso à toa.
+build/
+!build/README.md
+
+# Arquivos que o Windows e editores criam sozinhos
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Estado da interface salvo pelo Dear ImGui (é pessoal, não versionamos)
+imgui.ini
+
+# ATENÇÃO: as imagens de docs/ FAZEM parte do repositório (o README usa elas).
+# Se for gerar imagens novas, confira antes se não apareceu nada da sua tela
+# além dos painéis — veja docs/README.md.
