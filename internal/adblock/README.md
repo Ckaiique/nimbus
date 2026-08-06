@@ -70,9 +70,9 @@ Sendo honesto, para ninguém esperar o que ele não entrega:
 - **não garante que o "pular sozinho" vá funcionar sempre.** O YouTube muda a
   técnica com frequência e sabe detectar quem tenta pular. Isso é uma corrida
   sem fim, e não vamos ganhar dela;
-- **não se atualiza sozinho.** A lista é embutida no código, de propósito: o
-  Nimbus tem de funcionar offline e sem depender do servidor de ninguém. Em
-  troca, ela pega o grosso — não pega tudo;
+- **pega o grosso, não pega tudo.** Mesmo com mais de 100 mil endereços da
+  EasyList, sempre aparece anúncio vindo de servidor novo que ainda não entrou
+  em lista nenhuma;
 - **não é um uBlock Origin.** Não tem filtros por caminho, nem por regra
   cosmética avançada, nem lista de exceções por site. A proposta é ser útil no
   dia a dia do dono do PC, no navegador dele.

@@ -1,24 +1,30 @@
-// As duas listas de domínios: o que barrar e o que NUNCA barrar.
+// As duas listas de domínios ESCRITAS À MÃO: a reserva e a de proteção.
 //
-// ─── De onde saiu esta lista ──────────────────────────────────────────────
+// ─── O que é a "reserva" ──────────────────────────────────────────────────
 //
-// Ela foi escrita à mão, escolhendo os servidores de publicidade e de
-// rastreamento mais comuns na web — os mesmos nomes que aparecem no topo de
-// qualquer lista pública do gênero (EasyList, EasyPrivacy, Peter Lowe's list) e
-// nos "quem está te seguindo" que os navegadores mostram.
+// Estes ~120 domínios eram, até pouco tempo atrás, o bloqueador inteiro. Hoje o
+// grosso vem das listas públicas da EasyList (mais de 100 mil domínios, veja
+// `carregar.go`), e esta lista curta passou a ter dois papéis:
+//
+//  1. **rede de segurança** — se o arquivo grande vier corrompido ou cortado
+//     no meio, o Nimbus cai aqui em vez de ficar sem bloquear nada. É a regra
+//     da casa ("a tela nunca fica em branco") aplicada ao bloqueador;
+//  2. **complemento permanente** — ela é somada à lista grande sempre, porque
+//     tem casos que a de fora não cobre do mesmo jeito. Exemplo:
+//     "adservice.google.com" fica DEBAIXO de um domínio protegido
+//     ("google.com"), então regras vindas de fora sobre ele são descartadas por
+//     precaução — mas esta, escrita e conferida por nós, vale.
 //
 // O critério de escolha foi deliberadamente CONSERVADOR: só entrou domínio cuja
 // razão de existir é servir anúncio, medir audiência ou seguir usuário. Nada de
 // domínio de uso misto (por exemplo, o `gstatic.com` do Google, que serve
 // arquivos de sites inteiros) — bloquear um desses quebraria páginas legítimas,
 // e o dono ficaria com a impressão de que o Nimbus está com defeito.
-//
-// ⚠️ A lista NÃO se atualiza sozinha (é embutida, nada é baixado). Ela pega o
-// grosso do que incomoda; não pega tudo. Para acrescentar um domínio, escreva
-// só o "nome principal" — todos os subdomínios dele já vêm juntos.
 package adblock
 
-// dominiosBloqueados: servidores de anúncio e de rastreamento.
+import "strings"
+
+// dominiosReserva: servidores de anúncio e de rastreamento, escritos à mão.
 //
 // Escreva sempre o domínio "de cima" (ex.: "doubleclick.net"). O casamento é
 // por rótulo, então "googleads.g.doubleclick.net" já está incluído.
@@ -26,7 +32,7 @@ package adblock
 // É um map (e não uma lista) porque a consulta acontece a CADA pedido da
 // página — centenas por site. Map é busca direta; percorrer uma lista de cem
 // nomes a cada imagem seria desperdício.
-var dominiosBloqueados = paraConjunto([]string{
+var dominiosReserva = paraConjunto([]string{
 	// ── Google: publicidade e medição ─────────────────────────────────────
 	// (o vídeo do YouTube NÃO passa por aqui — veja dominiosProtegidos)
 	"doubleclick.net",
@@ -222,7 +228,40 @@ func paraConjunto(nomes []string) map[string]bool {
 	return m
 }
 
-// QuantosDominios diz quantos domínios a lista de bloqueio tem. Serve para a
-// interface e para a documentação não ficarem com um número escrito na mão que
-// desatualiza sem ninguém perceber.
-func QuantosDominios() int { return len(dominiosBloqueados) }
+// ProtegidoOuSubdominio diz se o domínio é um serviço protegido — ou algo
+// debaixo dele.
+//
+// É a trava aplicada a TUDO que vem de fora: uma regra da EasyList sobre
+// "googlevideo.com", ou sobre "r5---sn-abc.googlevideo.com", nunca entra na
+// nossa lista. Não é exagero: a EasyList é feita para navegador comum, onde
+// bloquear um servidor de vídeo por engano estraga um site. Aqui estragaria
+// justamente as quatro coisas que o Nimbus existe para mostrar.
+//
+// ⚠️ Isto NÃO se aplica à lista escrita à mão (dominiosReserva), que é curada
+// por nós e usa o desempate por especificidade — é o que mantém
+// "adservice.google.com" bloqueado com "google.com" protegido.
+func ProtegidoOuSubdominio(dominio string) bool {
+	for parte := dominio; parte != ""; {
+		if dominiosProtegidos[parte] {
+			return true
+		}
+		i := strings.Index(parte, ".")
+		if i < 0 {
+			return false
+		}
+		parte = parte[i+1:]
+	}
+	return false
+}
+
+// DominiosProtegidos devolve, em ordem qualquer, os domínios que nunca podem
+// ser bloqueados. Existe para o gerador de listas poder aplicar a mesma trava
+// que o programa aplica — sem precisar copiar a lista para outro lugar (cópia
+// de lista é cópia que um dia fica desatualizada).
+func DominiosProtegidos() []string {
+	fora := make([]string, 0, len(dominiosProtegidos))
+	for d := range dominiosProtegidos {
+		fora = append(fora, d)
+	}
+	return fora
+}

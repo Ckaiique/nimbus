@@ -109,7 +109,7 @@ func TestListasCoerentes(t *testing.T) {
 	// Nenhum domínio pode estar nas duas listas ao mesmo tempo com o MESMO
 	// nome (aí o desempate por tamanho empataria e o comportamento ficaria
 	// confuso de explicar).
-	for d := range dominiosBloqueados {
+	for d := range dominiosReserva {
 		if dominiosProtegidos[d] {
 			t.Errorf("%q está nas duas listas ao mesmo tempo", d)
 		}
@@ -124,7 +124,7 @@ func TestListasCoerentes(t *testing.T) {
 			}
 		}
 	}
-	conferir("bloqueio", dominiosBloqueados)
+	conferir("reserva", dominiosReserva)
 	conferir("protegidos", dominiosProtegidos)
 }
 

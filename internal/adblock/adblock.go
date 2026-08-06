@@ -29,25 +29,32 @@
 // reclamar. Isso é uma corrida sem fim. A meta aqui é ser útil no dia a dia do
 // dono do PC — não virar um uBlock Origin.
 //
-// ─── Por que a lista é EMBUTIDA no código ─────────────────────────────────
+// ─── De onde vem a lista (e por que ela nunca falta) ──────────────────────
 //
-// Nada é baixado da internet. O Nimbus tem de funcionar offline e sem depender
-// do servidor de ninguém — se a lista viesse de fora, o dia em que aquele
-// servidor saísse do ar o programa ficaria estranho sem motivo aparente. Em
-// troca, a lista não se atualiza sozinha: ela pega o grosso, não tudo.
+// O grosso da lista vem das listas públicas da EasyList, convertidas para um
+// formato simples e guardadas DENTRO do .exe. O Nimbus não baixa nada para
+// funcionar: ele abre offline, com a lista que já tem.
+//
+// Ele pode, sim, buscar uma versão mais nova em segundo plano (a cada 7 dias, e
+// dá para desligar na aba Config) — mas isso é um extra. Se a internet estiver
+// fora, se o servidor sumir ou se o dono desligar a opção, tudo continua
+// funcionando com a lista embutida. E se até ela falhar, existe a lista curta
+// escrita à mão em `listas.go`. Veja `carregar.go` para a ordem completa.
 package adblock
 
 import "strings"
 
 // DeveBloquear responde se aquele endereço é de anúncio ou rastreamento.
 //
-// A regra tem duas listas e um critério de desempate:
+// A regra tem três listas e um critério de desempate:
 //
-//  1. a lista de bloqueio (dominiosBloqueados);
+//  1. a lista de bloqueio (EasyList + os domínios escritos à mão);
 //  2. a lista de proteção (dominiosProtegidos), com os serviços que o dono usa;
-//  3. no empate, VENCE O MAIS ESPECÍFICO (o nome mais comprido que casou).
+//  3. a lista de exceções que a própria EasyList declara ("isto não é anúncio");
+//  4. no empate, VENCE O MAIS ESPECÍFICO (o nome mais comprido que casou), e um
+//     empate exato é resolvido a favor de NÃO bloquear.
 //
-// O passo 3 existe por um caso real: "google.com" está protegido (não podemos
+// O passo 4 existe por um caso real: "google.com" está protegido (não podemos
 // quebrar o login do Google), mas "adservice.google.com" é servidor de anúncio.
 // Como o segundo é mais específico, ele ganha e o anúncio é barrado — sem
 // derrubar o resto do Google.
@@ -61,8 +68,23 @@ func DeveBloquear(url string) bool {
 	if dominio == "" {
 		return false
 	}
-	return casamentoMaisEspecifico(dominio, dominiosBloqueados) >
-		casamentoMaisEspecifico(dominio, dominiosProtegidos)
+
+	l := listaEmUso()
+
+	bloqueio := casamentoMaisEspecifico(dominio, l.bloquear)
+	if bloqueio == 0 {
+		return false // ninguém mandou bloquear: caminho mais comum, sai cedo
+	}
+	// A trava dos serviços do dono. Empate (mesmo nome nas duas listas) conta
+	// como proteção — é o "na dúvida, deixa passar".
+	if casamentoMaisEspecifico(dominio, dominiosProtegidos) >= bloqueio {
+		return false
+	}
+	// A própria EasyList dizendo "este aqui não é anúncio".
+	if casamentoMaisEspecifico(dominio, l.excecoes) >= bloqueio {
+		return false
+	}
+	return true
 }
 
 // DominioDaURL tira o nome do servidor de dentro do endereço.

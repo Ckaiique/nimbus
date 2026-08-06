@@ -158,8 +158,23 @@ Ele trabalha de dois jeitos ao mesmo tempo:
 
 | Frente | O que faz |
 |---|---|
-| **Não buscar** | A cada coisa que a página vai baixar, o Nimbus olha o endereço. Se for de um servidor de publicidade (123 dos mais comuns, numa lista **embutida no programa**), o pedido nem sai para a internet. |
+| **Não buscar** | A cada coisa que a página vai baixar, o Nimbus olha o endereço. Se for de um servidor de publicidade, o pedido nem sai para a internet. São **mais de 100 mil endereços** conhecidos. |
 | **Limpar a página** | Um script esconde o buraco que sobrou no lugar do anúncio e, no YouTube, clica no **"Pular anúncio"** assim que ele aparece. |
+
+**De onde vem essa lista:** da [EasyList](https://easylist.to/), mantida pela
+comunidade há mais de quinze anos — a mesma que o uBlock Origin e o AdBlock
+usam. Uma cópia dela vem **dentro do programa**, então o bloqueio funciona já no
+primeiro uso e sem internet.
+
+**Ela se mantém em dia sozinha:** a cada 7 dias, em segundo plano, o Nimbus
+baixa a versão nova. Sem internet, ele segue com a que tem e não reclama. Na
+aba Config você vê quando foi a última atualização, pode forçar uma agora, ou
+**desligar** a atualização automática — um programa que acessa a internet
+sozinho tem que ter interruptor.
+
+> 📄 As listas não são nossas. O **código** do Nimbus é MIT, mas as **listas**
+> são da EasyList e têm licença própria (CC BY-SA). Os créditos estão em
+> [`docs/LICENCA-LISTAS.md`](docs/LICENCA-LISTAS.md).
 
 > ℹ️ **Sendo honesto sobre os limites** — o bloqueador é para uso pessoal, no
 > navegador do próprio dono, e não é um uBlock Origin:
@@ -170,9 +185,8 @@ Ele trabalha de dois jeitos ao mesmo tempo:
 > - o YouTube muda essas técnicas com frequência e sabe detectar quem pula.
 >   Um dia funciona, no outro pode parar — é uma corrida sem fim, e o objetivo
 >   aqui é ajudar no dia a dia, não vencê-la;
-> - a lista **não se atualiza sozinha** (é embutida de propósito, para o Nimbus
->   funcionar offline e sem depender do servidor de ninguém). Ela pega o grosso,
->   não pega tudo;
+> - a lista pega o **grosso**, não tudo: mesmo com mais de 100 mil endereços,
+>   sempre aparece anúncio de servidor novo que ainda não está nela;
 > - existe uma **trava**: os endereços de onde os vídeos realmente saem
 >   (`googlevideo.com`, `nflxvideo.net`, `dssott.com`...) nunca podem ser
 >   bloqueados — bloquear um deles por engano não tiraria um anúncio, apagaria

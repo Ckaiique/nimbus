@@ -37,6 +37,7 @@ import (
 	"image/color"
 	"math"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -44,6 +45,7 @@ import (
 
 	"nimbus/internal/audio"
 	"nimbus/internal/bandeja"
+	"nimbus/internal/listas"
 	"nimbus/internal/monitor"
 	"nimbus/internal/player"
 )
@@ -479,6 +481,14 @@ func preparar() {
 	procShowWindow.Call(id, mostrarSemAtivar)
 
 	preparado = true
+
+	// Com a janela JÁ DE PÉ, o atualizador das listas de anúncio começa a
+	// trabalhar em segundo plano. Este é o único lugar certo para chamá-lo:
+	// antes disto, qualquer trabalho extra atrasaria a abertura do Nimbus — e
+	// o dono estaria olhando para uma tela vazia por causa de uma lista de
+	// anúncios, o que seria uma péssima troca. (Ele roda numa goroutine
+	// própria; nada aqui espera por ele.)
+	listas.Iniciar()
 }
 
 // antesDoQuadro roda ANTES de cada quadro do ImGui (regras 4 e 6).
@@ -825,11 +835,11 @@ func janelaConfig() {
 	}
 
 	g.Window("Config###config").IsOpen(&configAberto).
-		// Altura 510: o conteúdo da Config cresceu (tema, opacidade, dois
-		// botões, TRÊS opções e a dica do Insert). Com menos que isso vira
-		// barra de rolagem e o último item fica escondido. Se acrescentar
-		// item, aumente aqui.
-		Pos(basePX+posConfigX, basePY+posConfigY).Size(300, 510).Layout(
+		// Altura 600: o conteúdo da Config cresceu de novo (tema, opacidade,
+		// três botões, QUATRO opções, a situação das listas e a dica do
+		// Insert). Com menos que isso vira barra de rolagem e o último item
+		// fica escondido. Se acrescentar item, aumente aqui.
+		Pos(basePX+posConfigX, basePY+posConfigY).Size(300, 600).Layout(
 		textoFraco("Tema de cores"),
 		g.Combo("##tema", nomes[PresetAtual], nomes, &PresetAtual).Size(-1),
 
@@ -862,6 +872,15 @@ func janelaConfig() {
 			OnChange(func() { player.DefinirBloqueioDeAnuncios(bloquearAnuncios) }),
 		textoFraco("Corta banners e rastreadores. No"),
 		textoFraco("YouTube, pula o anuncio sozinho."),
+
+		// A situação das listas. É recalculada a cada quadro (a Config inteira
+		// é montada de novo), então o texto acompanha sozinho o que a
+		// atualização em segundo plano estiver fazendo.
+		textoFraco(quantosDominiosBloqueados()),
+		textoFraco(situacaoDasListas()),
+		g.Button("Atualizar listas agora").Size(-1, 24).OnClick(listas.AtualizarAgora),
+		g.Checkbox("Atualizar listas sozinho", &atualizarListasSozinho).
+			OnChange(func() { listas.DefinirAutomatico(atualizarListasSozinho) }),
 
 		g.Dummy(1, 4),
 
@@ -1019,6 +1038,64 @@ var manterCarregado bool
 // e o valor inicial tem de ser o MESMO do player.BloquearAnuncios — senão a
 // caixinha mostraria uma coisa e o programa faria outra.
 var bloquearAnuncios = player.BloquearAnuncios
+
+// atualizarListasSozinho é a caixinha "Atualizar listas sozinho" (aba Config).
+// Começa com o mesmo valor do atualizador — senão a caixinha mostraria uma
+// coisa e o programa faria outra.
+var atualizarListasSozinho = listas.Automatico()
+
+// quantosDominiosBloqueados escreve o tamanho da lista de um jeito que dá para
+// ler de relance ("102 mil dominios bloqueados"), sem o número exato, que muda
+// toda semana e não ajuda ninguém.
+func quantosDominiosBloqueados() string {
+	n := listas.AtualEstado().Quantos
+	if n >= 10000 {
+		return fmt.Sprintf("%d mil dominios na lista.", n/1000)
+	}
+	return fmt.Sprintf("%d dominios na lista.", n)
+}
+
+// situacaoDasListas escreve, em uma linha, de onde veio a lista em uso e há
+// quanto tempo.
+//
+// Ela é escrita em linguagem de gente, não de programador: "há 3 dias" em vez
+// de uma data, e "a lista que veio no programa" em vez de "embutida". Quem lê
+// quer saber se está em dia, não de que arquivo saiu.
+func situacaoDasListas() string {
+	e := listas.AtualEstado()
+
+	if e.Atualizando {
+		return "Atualizando..."
+	}
+	switch e.Origem {
+	case listas.OrigemBaixada:
+		return "Listas atualizadas " + hAQuantoTempo(e.Gerada) + "."
+	case listas.OrigemEmbutida:
+		return "Usando a lista que veio no programa."
+	default:
+		return "Usando a lista curta de reserva."
+	}
+}
+
+// hAQuantoTempo transforma uma data em "hoje", "ha 3 dias", "ha 2 meses".
+func hAQuantoTempo(quando time.Time) string {
+	if quando.IsZero() {
+		return "em data desconhecida"
+	}
+	dias := int(time.Since(quando).Hours() / 24)
+	switch {
+	case dias <= 0:
+		return "hoje"
+	case dias == 1:
+		return "ontem"
+	case dias < 30:
+		return fmt.Sprintf("ha %d dias", dias)
+	case dias < 60:
+		return "ha 1 mes"
+	default:
+		return fmt.Sprintf("ha %d meses", dias/30)
+	}
+}
 
 // explicacaoDoModo escreve, em uma linha, o que a opção faz agora.
 func explicacaoDoModo() string {
