@@ -13,10 +13,18 @@
 Add-Type -AssemblyName System.Drawing
 
 $destino = Join-Path $PSScriptRoot ''
+# Onde cada painel fica na tela, nas posições padrão.
+#
+# Estes números seguem o TAMANHO dos painéis: se a interface mudar (um botão a
+# mais, um texto mais comprido), eles precisam ser conferidos de novo, senão o
+# recorte corta o painel pela metade ou pega um pedaço do que está atrás.
+#
+# Como conferir: abra o Nimbus, tire uma foto da tela e meça as bordas de cada
+# painel num editor de imagem.
 $paineis = @(
-    @{ nome = 'musica';  x = 80;  y = 80;  w = 310; h = 306 },
-    @{ nome = 'sistema'; x = 80;  y = 398; w = 310; h = 250 },
-    @{ nome = 'config';  x = 410; y = 398; w = 300; h = 340 }
+    @{ nome = 'musica';  x = 82;  y = 83;  w = 354; h = 268 },
+    @{ nome = 'sistema'; x = 82;  y = 398; w = 308; h = 250 },
+    @{ nome = 'config';  x = 410; y = 398; w = 301; h = 450 }
 )
 
 $recortes = @{}

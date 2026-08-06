@@ -56,15 +56,19 @@ janela em que você está trabalhando.
 
 <img src="docs/painel-musica.png" alt="Painel Música" width="330" align="right">
 
-Slider, botões **−** / **+** e **Mudo**, mexendo no volume geral do Windows.
+Uma barra **em pé**, colada na borda direita do painel, mexendo no volume geral
+do Windows. Passe o mouse por cima para ver o número.
 
 **Para que serve:** trocar o volume sem sair do que você está fazendo — sem
 abrir o misturador, sem procurar o ícone do alto-falante, sem tirar o foco do
-jogo ou da chamada. O botão de mudo fica **verde** quando o som está cortado,
-para você ver de longe que o microfone do vídeo não está no ar por causa disso.
+jogo ou da chamada.
 
-O valor mostrado é sempre o **real** do Windows: se você mexer no volume pelo
-teclado ou por outro programa, o slider acompanha.
+**Por que em pé:** deitada, a barra roubava a largura do painel justamente onde
+o vídeo precisa aparecer. Em pé, ela ocupa uma faixa fininha na lateral e deixa
+o meio inteiro livre.
+
+O valor é sempre o **real** do Windows: se você mexer no volume pelo teclado ou
+por outro programa, a barra acompanha.
 
 ### ⏯️ Controle de mídia
 
@@ -89,6 +93,11 @@ navegador** — nenhum espaço desperdiçado com botões.
 
 - **Clique esquerdo** → abre dentro do Nimbus.
 - **Clique direito** → abre no seu navegador de verdade.
+
+**Dá para juntar o vídeo ao painel:** arraste a janelinha do player para dentro
+do painel Música e as duas viram uma só — o vídeo passa a ocupar a área central,
+com os ícones de um lado, o volume do outro e os controles embaixo. Arraste para
+fora e elas se separam de novo.
 
 <div align="center">
 
@@ -116,6 +125,9 @@ Botão **Sem vídeo** quando um serviço está aberto.
 o vídeo — **a música continua tocando** — e a janelinha some, ficando só os
 controles. O botão vira **Ver vídeo** para trazer a imagem de volta, do ponto
 onde estava.
+
+Ao lado dele fica o **Parar**, que é diferente: encerra o serviço de vez e o som
+junto. Use o *Sem vídeo* para continuar ouvindo; o *Parar* para acabar mesmo.
 
 ### 🗂️ Dois modos de player (opção na Config)
 
@@ -158,6 +170,19 @@ você escolhe uma paleta e as ~20 cores da interface são **calculadas** a parti
 de 5 cores base, então nada fica desarmônico.
 
 A opacidade vale **também para o vídeo** — não só para os painéis.
+
+### 🩹 Transparência simples (a saída para a tela escura)
+
+Uma caixinha na aba Config, normalmente **desligada**.
+
+**Para que serve:** em alguns computadores, o jeito bonito de deixar o fundo
+transparente não funciona — a tela inteira escurece, como se houvesse um vidro
+fumê por cima de tudo. Ligando esta opção, o Nimbus troca por um método mais
+simples: os painéis ficam **opacos** (perde-se a transparência), mas a tela volta
+ao normal.
+
+É o clássico "feio, porém honesto": em vez de deixar você com uma tela estragada
+sem entender por quê, tem um botão que resolve.
 
 ### 🪟 Juntar painéis em abas
 
@@ -235,13 +260,13 @@ linha de comando.
 | Redimensionar | Puxe o canto inferior direito |
 | Recolher | Clique na setinha ▼ ao lado do título |
 | Levar para outro monitor | Arraste normalmente, atravessa as telas |
-| Juntar em abas | Arraste um painel sobre o outro |
+| Juntar em abas | Arraste um painel sobre o outro (vale para o vídeo também) |
 | Esconder / mostrar tudo | Tecla **Insert**, ou clique no ícone da bandeja |
 | Menu rápido | Botão direito no ícone da bandeja |
 | Abrir um serviço | Clique no ícone (direito abre no navegador) |
-| Abrir Sistema / Config | Botões no painel Música |
+| Abrir Sistema / Config | Engrenagem ⚙ no pé da coluna de ícones |
 | Voltar tudo ao lugar | **Recolocar painéis**, na aba Config |
-| Fechar o Nimbus | Botão **Sair**, ou pelo menu da bandeja |
+| Fechar o Nimbus | **Sair**, na engrenagem ⚙, ou pelo menu da bandeja |
 
 > 💡 Não achou o ícone da bandeja? Clique na **setinha `^`** ao lado do relógio: o
 > Windows esconde ali os ícones novos. Arraste o do Nimbus para fora para fixá-lo.

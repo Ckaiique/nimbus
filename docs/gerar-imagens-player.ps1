@@ -21,8 +21,12 @@ if (-not (Test-Path $exeOriginal)) {
     exit 1
 }
 
-# A janelinha do player nasce aqui (posição padrão, em coordenadas de tela).
-$area = @{ x = 420; y = 80; w = 560; h = 380 }
+# Onde a janelinha do player nasce, em coordenadas de tela.
+#
+# Se a interface mudar, estes números mudam junto. Para descobrir os atuais,
+# abra um serviço e leia a posição da janela "Nimbus Video" — ela é uma janela
+# de verdade do Windows, separada dos painéis.
+$area = @{ x = 424; y = 112; w = 552; h = 342 }
 
 $servicos = @('youtube', 'music', 'netflix', 'disney')
 
@@ -36,7 +40,7 @@ foreach ($servico in $servicos) {
     $env:NIMBUS_DEBUG_ALFA = '1.0'
 
     Start-Process $exeFotos
-    Start-Sleep -Seconds 16   # tempo para o site carregar
+    Start-Sleep -Seconds 22   # tempo para o site carregar (Netflix e Disney+ demoram)
 
     $bmp = New-Object System.Drawing.Bitmap $area.w, $area.h
     $g = [System.Drawing.Graphics]::FromImage($bmp)
