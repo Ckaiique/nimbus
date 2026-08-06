@@ -1141,6 +1141,23 @@ const (
 
 // quaseIgual compara dois tamanhos/posições com folga de alguns pixels (o
 // encaixe do ImGui pode deixar uma diferença de 1 ou 2).
+// maiorF e menorF são o mínimo e o máximo entre dois números. Existem porque
+// o Go só traz min/max para os tipos comuns, e aqui trabalhamos com float32
+// das coordenadas do ImGui.
+func maiorF(a, b float32) float32 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func menorF(a, b float32) float32 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func quaseIgual(a, b float32) bool {
 	d := a - b
 	if d < 0 {
@@ -1193,16 +1210,30 @@ func painelTapaOVideo(mouse, videoPos, videoTam imgui.Vec2, paineis [][4]float32
 			continue
 		}
 
-		cursorNoPainel := mouse.X >= px && mouse.X <= px+plarg &&
-			mouse.Y >= py && mouse.Y <= py+palt
-		if !cursorNoPainel {
+		// A PARTE DO PAINEL QUE FICA POR CIMA DO VÍDEO (a interseção dos dois
+		// retângulos). É só ela que interessa.
+		esqTapada := maiorF(px, videoPos.X)
+		cimaTapada := maiorF(py, videoPos.Y)
+		dirTapada := menorF(px+plarg, videoPos.X+videoTam.X)
+		baixoTapada := menorF(py+palt, videoPos.Y+videoTam.Y)
+
+		// Não se cruzam: este painel não estorva nada.
+		if esqTapada >= dirTapada || cimaTapada >= baixoTapada {
 			continue
 		}
 
-		// Sobreposição de retângulos: eles se cruzam nos dois sentidos?
-		cruzaEmX := px < videoPos.X+videoTam.X && px+plarg > videoPos.X
-		cruzaEmY := py < videoPos.Y+videoTam.Y && py+palt > videoPos.Y
-		if cruzaEmX && cruzaEmY {
+		// O cursor está DENTRO dessa parte tapada?
+		//
+		// Aqui estava o incômodo que o dono relatou: antes bastava o cursor
+		// estar em QUALQUER lugar do painel — inclusive na barra de título,
+		// que não cobre o vídeo — para o vídeo inteiro sumir. Bastava encostar
+		// o mouse na aba do painel Música, ou mexer no volume, e o vídeo
+		// piscava.
+		//
+		// Agora só sai da frente quando o cursor está mesmo no pedaço onde um
+		// está por cima do outro — que é o único lugar onde o vídeo atrapalha.
+		if mouse.X >= esqTapada && mouse.X <= dirTapada &&
+			mouse.Y >= cimaTapada && mouse.Y <= baixoTapada {
 			return true
 		}
 	}
