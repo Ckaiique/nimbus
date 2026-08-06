@@ -121,6 +121,13 @@ func MostrarEmbutido(idJanela uintptr, qual string) bool {
 		inst = &instancia{nav: nav, janela: janela}
 		instancias[chave(qual)] = inst
 
+		// Bloqueador de anúncios: tem de ser armado AGORA, com o navegador
+		// recém-criado e antes de carregar qualquer site — o filtro e o script
+		// só valem para o que for pedido depois de registrados. Como cada
+		// serviço pode ter o seu navegador (modo "manter carregado"), isto roda
+		// uma vez por navegador. Veja anuncios.go.
+		prepararBloqueio(nav)
+
 		// Fundo ESCURO E OPACO enquanto a página não carregou.
 		//
 		// Opaco de propósito: agora o navegador está numa janela normal, que não

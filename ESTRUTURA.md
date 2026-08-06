@@ -55,6 +55,13 @@ nimbus/
 │
 ├── internal/           ← LÓGICA e VISUAL, separados em pastas
 │   ├── README.md
+│   ├── adblock/        ← bloqueador de anúncios dos sites abertos aqui dentro
+│   │   ├── README.md
+│   │   ├── adblock.go  ← a decisão: DeveBloquear(url) (função pura, testada)
+│   │   ├── listas.go   ← as duas listas embutidas: bloquear / nunca bloquear
+│   │   ├── limpeza.go  ← CSS/JS injetado: esconde anúncio e pula o do YouTube
+│   │   └── adblock_test.go
+│   │
 │   ├── audio/          ← som do Windows
 │   │   ├── README.md
 │   │   ├── volume.go   ← pegar/definir volume e mudo (com modo demonstração)
@@ -72,6 +79,8 @@ nimbus/
 │   ├── player/         ← YouTube dentro do overlay (WebView2 / motor do Edge)
 │   │   ├── README.md
 │   │   ├── embutido.go ← renderiza o site DENTRO da janela do overlay
+│   │   ├── janela_video.go ← a janela PRÓPRIA que hospeda o navegador
+│   │   ├── anuncios.go ← liga o bloqueador de anúncios em cada navegador
 │   │   └── player.go   ← plano B: janelinha separada (PC sem WebView2)
 │   │
 │   └── ui/             ← VISUAL (os painéis em ImGui)
@@ -89,6 +98,8 @@ nimbus/
 
 - **Falar com o Windows (som, teclas, medições, bandeja)** → `internal/audio/`,
   `internal/monitor/` ou `internal/bandeja/`.
+- **Regra de "isto é anúncio?"** → `internal/adblock/` (só decide, não age).
+  Quem age é o `internal/player/`, que fala com o navegador.
 - **Tudo que aparece na tela** (painéis, cores) → `internal/ui/`.
 - **Imagens e ícones** → `assets/` (lidos do disco, para trocar sem recompilar).
 - O `main.go` só **liga as partes** — não tem lógica própria.

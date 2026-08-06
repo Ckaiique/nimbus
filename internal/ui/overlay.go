@@ -825,11 +825,11 @@ func janelaConfig() {
 	}
 
 	g.Window("Config###config").IsOpen(&configAberto).
-		// Altura 445: o conteúdo da Config cresceu (tema, opacidade, dois
-		// botões, duas opções e a dica do Insert). Com menos que isso vira
+		// Altura 510: o conteúdo da Config cresceu (tema, opacidade, dois
+		// botões, TRÊS opções e a dica do Insert). Com menos que isso vira
 		// barra de rolagem e o último item fica escondido. Se acrescentar
 		// item, aumente aqui.
-		Pos(basePX+posConfigX, basePY+posConfigY).Size(300, 445).Layout(
+		Pos(basePX+posConfigX, basePY+posConfigY).Size(300, 510).Layout(
 		textoFraco("Tema de cores"),
 		g.Combo("##tema", nomes[PresetAtual], nomes, &PresetAtual).Size(-1),
 
@@ -854,6 +854,14 @@ func janelaConfig() {
 		g.Checkbox("Manter cada servico carregado", &manterCarregado).
 			OnChange(func() { player.DefinirModoMultiplo(manterCarregado) }),
 		textoFraco(explicacaoDoModo()),
+
+		g.Dummy(1, 4),
+
+		// Bloqueador de anúncios dos sites abertos aqui dentro.
+		g.Checkbox("Bloquear anuncios", &bloquearAnuncios).
+			OnChange(func() { player.DefinirBloqueioDeAnuncios(bloquearAnuncios) }),
+		textoFraco("Corta banners e rastreadores. No"),
+		textoFraco("YouTube, pula o anuncio sozinho."),
 
 		g.Dummy(1, 4),
 
@@ -1006,6 +1014,11 @@ func videoDentroDaMusica() {
 // manterCarregado é a opção "um navegador por serviço" (aba Config). Começa
 // desligada: o padrão é o modo econômico, de um navegador só.
 var manterCarregado bool
+
+// bloquearAnuncios é a opção "Bloquear anuncios" (aba Config). Começa LIGADA,
+// e o valor inicial tem de ser o MESMO do player.BloquearAnuncios — senão a
+// caixinha mostraria uma coisa e o programa faria outra.
+var bloquearAnuncios = player.BloquearAnuncios
 
 // explicacaoDoModo escreve, em uma linha, o que a opção faz agora.
 func explicacaoDoModo() string {

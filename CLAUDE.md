@@ -347,6 +347,35 @@ Para testar sem clicar: `NIMBUS_DEBUG_MULTI=1` liga o modo múltiplo e
 contando as janelas-filhas `Chrome_WidgetWin_1`: modo múltiplo = 2 navegadores
 com 1 visível; econômico = 1 navegador.
 
+### Bloqueador de anúncios (`internal/adblock` + `internal/player/anuncios.go`)
+
+A decisão ("isto é anúncio?") mora em `internal/adblock`, como **função pura**
+(`DeveBloquear(url) bool`) com listas **embutidas no código** — nada é baixado:
+o Nimbus tem de funcionar offline. Quem age é `player/anuncios.go`, ligando o
+filtro do WebView2 e injetando o script de limpeza em cada navegador criado.
+
+Três coisas que **não** podem ser mexidas sem entender:
+
+1. **Casamento por rótulo de domínio, nunca `strings.Contains`.**
+   `googlesyndication.com` tem de pegar `pagead2.googlesyndication.com`, mas
+   **não pode** pegar `naogoogle-analytics.com.br` — que é o site de outra
+   pessoa e só por acaso tem aquelas letras. Tem teste para os dois.
+2. **A lista de protegidos é uma trava de segurança.** Bloquear
+   `googlevideo.com`, `nflxvideo.net` ou `dssott.com` por engano não tira um
+   anúncio: **apaga o vídeo inteiro**. Quando as duas listas casam, vence a
+   mais específica — é o que permite proteger `google.com` e ainda assim barrar
+   `adservice.google.com`.
+3. **No script da página, a trava do `ad-showing`.** O pulo do anúncio do
+   YouTube adianta o vídeo até o fim; se ele rodar quando NÃO estiver passando
+   anúncio, adianta o filme que a pessoa está assistindo. Só age quando o
+   próprio player do YouTube diz que está em anúncio.
+
+Honestidade obrigatória em qualquer texto sobre isso: o **anúncio de vídeo do
+YouTube não dá para bloquear por endereço** (vem do mesmo servidor do vídeo) —
+o que fazemos é **pular**, e o YouTube muda a técnica com frequência, então
+pode parar de funcionar sem aviso. Isto é para uso pessoal, não é um uBlock
+Origin.
+
 ### O vídeo tem de acompanhar a janelinha (esconder junto)
 
 O vídeo é uma **janela-filha do Windows** e fica SEMPRE por cima do que o ImGui

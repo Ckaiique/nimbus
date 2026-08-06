@@ -145,6 +145,42 @@ serviço:
 navegador abre seus próprios processos e consome memória. A linha abaixo da opção
 mostra quantos serviços estão carregados neste momento.
 
+### 🚫 Bloqueador de anúncios
+
+Uma caixinha na aba Config, **ligada de fábrica**, que vale para os sites
+abertos dentro do Nimbus.
+
+**Para que serve:** tirar da frente o que você não pediu para ver — banner,
+pop-up, pixel de rastreamento — e, no YouTube, **pular o anúncio do vídeo
+sozinho**, sem você precisar ficar de olho esperando o botão liberar.
+
+Ele trabalha de dois jeitos ao mesmo tempo:
+
+| Frente | O que faz |
+|---|---|
+| **Não buscar** | A cada coisa que a página vai baixar, o Nimbus olha o endereço. Se for de um servidor de publicidade (123 dos mais comuns, numa lista **embutida no programa**), o pedido nem sai para a internet. |
+| **Limpar a página** | Um script esconde o buraco que sobrou no lugar do anúncio e, no YouTube, clica no **"Pular anúncio"** assim que ele aparece. |
+
+> ℹ️ **Sendo honesto sobre os limites** — o bloqueador é para uso pessoal, no
+> navegador do próprio dono, e não é um uBlock Origin:
+>
+> - **o anúncio de vídeo do YouTube não dá para bloquear por endereço**: ele vem
+>   do **mesmo servidor** que entrega o vídeo que você quer ver. Bloquear
+>   apagaria o vídeo junto. Por isso a saída é **pular**, não bloquear;
+> - o YouTube muda essas técnicas com frequência e sabe detectar quem pula.
+>   Um dia funciona, no outro pode parar — é uma corrida sem fim, e o objetivo
+>   aqui é ajudar no dia a dia, não vencê-la;
+> - a lista **não se atualiza sozinha** (é embutida de propósito, para o Nimbus
+>   funcionar offline e sem depender do servidor de ninguém). Ela pega o grosso,
+>   não pega tudo;
+> - existe uma **trava**: os endereços de onde os vídeos realmente saem
+>   (`googlevideo.com`, `nflxvideo.net`, `dssott.com`...) nunca podem ser
+>   bloqueados — bloquear um deles por engano não tiraria um anúncio, apagaria
+>   o filme inteiro.
+>
+> Desmarcando a caixinha, tudo volta ao normal na hora, sem recarregar a página
+> e sem interromper a música que estiver tocando.
+
 ### 📊 Monitoramento do PC
 
 <img src="docs/painel-sistema.png" alt="Painel Sistema" width="330" align="right">
@@ -340,6 +376,7 @@ nimbus/
 │   └── servicos/*.png          Logos dos botões (troque sem recompilar)
 ├── docs/                       Imagens deste README + script que as gera
 ├── internal/
+│   ├── adblock/                Decide o que é anúncio (função pura, testada)
 │   ├── audio/                  Volume do Windows e teclas de mídia
 │   ├── monitor/                CPU, GPU, RAM e processos (em 2º plano)
 │   ├── player/                 Navegadores embutidos (WebView2)
@@ -356,13 +393,21 @@ O mapa completo, com o papel de cada arquivo, está em
 ## Testes
 
 ```powershell
-go test ./internal/ui/
+go test ./...
 ```
 
-Cobre a regra que decide **quando o vídeo sai da frente** dos painéis. Essa regra
-já quebrou duas vezes de formas diferentes (escondia o vídeo ao passar o mouse
-sobre ele; escondia ao apontar para um painel que estava ao lado), então virou uma
-função pura de geometria com teste — inclusive dos dois casos que já falharam.
+**`internal/ui/`** cobre a regra que decide **quando o vídeo sai da frente** dos
+painéis. Essa regra já quebrou duas vezes de formas diferentes (escondia o vídeo
+ao passar o mouse sobre ele; escondia ao apontar para um painel que estava ao
+lado), então virou uma função pura de geometria com teste — inclusive dos dois
+casos que já falharam.
+
+**`internal/adblock/`** cobre a decisão de bloquear. Os casos foram escolhidos
+pelos erros que esse tipo de código costuma cometer: bloquear um site inocente
+só porque o nome dele *contém* o texto de um domínio de anúncio
+(`naogoogle-analytics.com.br`), engasgar com endereço torto ou vazio, e o pior
+de todos — bloquear `googlevideo.com`, o servidor de onde o vídeo do YouTube
+realmente sai, o que apagaria o vídeo inteiro.
 
 ---
 
