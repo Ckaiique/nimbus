@@ -486,7 +486,7 @@ Para depurar (variáveis de ambiente, não afetam o uso normal):
 | `NIMBUS_DEBUG_PLAYER=youtube` | abre o player já ao iniciar |
 | `NIMBUS_DEBUG_ALFA=0.45` | começa com essa opacidade |
 | `NIMBUS_DEBUG_ORDEM=<arquivo>` | grava ali, 1x por segundo, o alvo do overlay na ordem das janelas (-1 = topo absoluto; outro número = entra abaixo da janela do vídeo) |
-| `NIMBUS_DEBUG_PAINEIS=<arquivo>` | grava ali, 1x por segundo, o retângulo de cada painel em coordenadas de TELA (para achar os painéis de fora do programa) |
+| `NIMBUS_DEBUG_PAINEIS=<arquivo>` | grava ali, 1x por segundo, o **nome** e o retângulo de cada painel em coordenadas de TELA. É daqui que `docs/gerar-imagens.ps1` tira onde recortar — **não mude o formato dessa linha sem ajustar o script** |
 | `NIMBUS_DEBUG_CONFIG=1` | abre a aba Config já ao iniciar |
 | `NIMBUS_DEBUG_ATALHOS=1` | abre a aba Atalhos já ao iniciar |
 | `NIMBUS_DEBUG_SEM_CONTROLES=1` | começa sem os botões de mídia e sem o slider de volume (o vídeo ocupando o painel inteiro) |
@@ -494,6 +494,18 @@ Para depurar (variáveis de ambiente, não afetam o uso normal):
 ⚠️ **Ao testar por captura de tela:** confira antes se a sessão do Windows está
 **desbloqueada**. Com o PC bloqueado, a captura mostra a tela de bloqueio e os
 números não têm relação nenhuma com o programa (já caí nessa).
+
+⚠️ **Nunca "fotografe um pedaço da tela" para gerar imagem que vai ser
+publicada.** O overlay é transparente e cobre todos os monitores: se por qualquer
+motivo ele não estiver aparecendo naquele instante, a foto sai com o que estava
+atrás — o trabalho do dono do PC. Isso ACONTECEU ao regerar as imagens do README,
+e só não foi publicado porque a imagem foi conferida antes.
+
+O jeito certo é pedir ao Windows os pixels **daquela janela**: `PrintWindow` com
+`PW_RENDERFULLCONTENT` (funciona tanto no overlay quanto na janela do vídeo,
+mesmo com o conteúdo desenhado pela placa de vídeo). É o que os dois scripts em
+`docs/` fazem hoje — assim nenhuma outra janela **pode** entrar na imagem, em vez
+de "provavelmente não vai".
 
 ## Serviços do player (`servicos` em `internal/ui/overlay.go`)
 

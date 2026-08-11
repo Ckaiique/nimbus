@@ -15,7 +15,7 @@ sem procurar ícone na bandeja, sem tirar o foco do que você está fazendo.
 
 *Feito por **KST***
 
-<img src="docs/paineis.png" alt="Os painéis do Nimbus: Música, Sistema e Config" width="700">
+<img src="docs/paineis.png" alt="Os painéis do Nimbus: Música, Sistema, Config e Atalhos" width="760">
 
 </div>
 
@@ -134,6 +134,14 @@ planilha.
 O **login por QR Code é feito uma vez só** — o Nimbus guarda a sessão do
 navegador em disco, então nas próximas vezes ele já abre logado.
 
+<div align="center">
+
+<img src="docs/player-whatsapp.png" alt="WhatsApp Web aberto dentro do Nimbus, pedindo o QR Code" width="560">
+
+*A primeira vez pede o QR Code, como no navegador. Depois disso ele abre logado.*
+
+</div>
+
 Dois avisos honestos:
 
 - **aviso de mensagem nova não funciona.** A notificação do navegador não tem
@@ -145,6 +153,8 @@ Dois avisos honestos:
   serviço carregado"* na aba **Config** — em troca de mais memória.
 
 ### ⌨️ Atalhos de teclado (configuráveis)
+
+<img src="docs/painel-atalhos.png" alt="Painel Atalhos" width="360" align="right">
 
 De fábrica: **Alt+1** YouTube, **Alt+2** YouTube Music, **Alt+3** Netflix,
 **Alt+4** Disney+, **Alt+5** WhatsApp.

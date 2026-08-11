@@ -9,6 +9,7 @@ package ui
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/AllenDang/cimgui-go/imgui"
@@ -31,6 +32,15 @@ var (
 	inicioJanelaLog time.Time
 )
 
+// depurarPainel grava o nome e o retângulo do painel que está sendo desenhado.
+//
+// O NOME é o que faz o arquivo servir de verdade: o script que tira as imagens
+// do README (`docs/gerar-imagens.ps1`) lê daqui as coordenadas de cada painel em
+// vez de ter números escritos na mão. Assim ele não recorta o lugar errado
+// quando a interface muda — e, o que importa mais, se um painel NÃO está na tela
+// (escondido pelo Insert, por exemplo) ele simplesmente não aparece no arquivo, e
+// o script para em vez de fotografar o que estiver atrás — que é o trabalho da
+// pessoa. Já aconteceu.
 func depurarPainel(pos, tam imgui.Vec2) {
 	if arquivoPaineis == "" {
 		return
@@ -46,8 +56,27 @@ func depurarPainel(pos, tam imgui.Vec2) {
 		return
 	}
 	defer f.Close()
-	fmt.Fprintf(f, "painel tela=(%.0f,%.0f) %.0fx%.0f\n",
-		pos.X+float32(telaX), pos.Y+float32(telaY), tam.X, tam.Y)
+	fmt.Fprintf(f, "painel %s tela=(%.0f,%.0f) %.0fx%.0f\n",
+		nomeDoPainelAtual(), pos.X+float32(telaX), pos.Y+float32(telaY), tam.X, tam.Y)
+}
+
+// nomeDoPainelAtual devolve o apelido do painel que está sendo desenhado — o
+// pedaço depois de "###" no título ("###musica" -> "musica").
+//
+// Usamos esse pedaço, e não o título visível, porque ele é o nome ESTÁVEL: o
+// título do painel Música muda para "Musica (demo - sem som)" quando não há som,
+// e o script que lê este arquivo não deve depender disso.
+func nomeDoPainelAtual() string {
+	janelaAtual := imgui.InternalCurrentWindowRead()
+	if janelaAtual == nil || janelaAtual.CData == nil {
+		return "?"
+	}
+	nome := janelaAtual.Name()
+	if _, apelido, achou := strings.Cut(nome, "###"); achou {
+		return apelido
+	}
+	// Sem "###" é algum popup nosso (o menuzinho da engrenagem, por exemplo).
+	return nome
 }
 
 func depurarOrdem(alvo uintptr) {
