@@ -144,6 +144,33 @@ Dois avisos honestos:
   pedir o QR de novo). Se preferir ele sempre conectado, marque *"manter cada
   serviço carregado"* na aba **Config** — em troca de mais memória.
 
+### ⌨️ Atalhos de teclado (configuráveis)
+
+De fábrica: **Alt+1** YouTube, **Alt+2** YouTube Music, **Alt+3** Netflix,
+**Alt+4** Disney+, **Alt+5** WhatsApp.
+
+**Para que serve:** trocar de serviço **sem parar o que você está fazendo** — sem
+procurar o painel, sem clicar em nada. Estava no YouTube e chegou mensagem?
+Alt+5. Quer voltar? Alt+1. E se os painéis estiverem escondidos (Insert), o
+atalho **mostra tudo de volta** junto — senão o som tocaria sem nada na tela.
+
+**Para trocar a combinação:** engrenagem → **Atalhos**. Clique em **Mudar** na
+linha da ação e **aperte a combinação que você quer** (Esc cancela). O **X**
+apaga o atalho daquela linha, e o botão de baixo devolve tudo ao de fábrica.
+
+Além dos serviços, dá para pôr atalho em: play/pause, próxima faixa, faixa
+anterior, ver/esconder o vídeo, parar o serviço e esconder/mostrar os painéis.
+Esses nascem **sem** atalho — quanto menos combinação o Nimbus reservar, menor a
+chance de atropelar o atalho de outro programa.
+
+> **Toda combinação precisa de Ctrl, Alt, Shift ou Win.** Não é frescura: o
+> Nimbus lê o teclado do computador inteiro (ele nunca fica com o foco), então um
+> atalho só na tecla "1" trocaria de serviço toda vez que você digitasse 1 em
+> qualquer lugar — no Word, no jogo, num campo de busca.
+
+Os atalhos ficam guardados em `%LOCALAPPDATA%\Nimbus\atalhos.txt` — um arquivo de
+texto que dá para ler no Bloco de Notas. Configurou uma vez, vale para sempre.
+
 ### 🎧 Modo "só escutar"
 
 Opção **Sem vídeo** no menuzinho da **engrenagem** (o ícone no pé da coluna de
@@ -282,6 +309,9 @@ continua**; aperta de novo e volta exatamente como estava.
 Funciona também pelo **ícone na bandeja** do sistema (ao lado do relógio): clique
 esconde/mostra, botão direito abre um menu com *Sair*.
 
+Se preferir outra tecla, a aba **Atalhos** tem a linha *Esconder / mostrar tudo* —
+o Insert continua funcionando de qualquer jeito.
+
 ### 🧭 Recolocar painéis
 
 Botão na aba Config.
@@ -346,7 +376,8 @@ linha de comando.
 | Esconder / mostrar tudo | Tecla **Insert**, ou clique no ícone da bandeja |
 | Menu rápido | Botão direito no ícone da bandeja |
 | Abrir um serviço | Clique no ícone (direito abre no navegador) |
-| Abrir Sistema / Config | Engrenagem ⚙ no pé da coluna de ícones |
+| Trocar de serviço pelo teclado | **Alt+1** a **Alt+5** (configurável na aba Atalhos) |
+| Abrir Sistema / Config / Atalhos | Engrenagem ⚙ no pé da coluna de ícones |
 | Voltar tudo ao lugar | **Recolocar painéis**, na aba Config |
 | Fechar o Nimbus | **Sair**, na engrenagem ⚙, ou pelo menu da bandeja |
 
@@ -423,6 +454,7 @@ nimbus/
 ├── docs/                       Imagens deste README + script que as gera
 ├── internal/
 │   ├── adblock/                Decide o que é anúncio (função pura, testada)
+│   ├── atalhos/                Combinações de teclas (Alt+1, Alt+2...)
 │   ├── audio/                  Volume do Windows e teclas de mídia
 │   ├── monitor/                CPU, GPU, RAM e processos (em 2º plano)
 │   ├── player/                 Navegadores embutidos (WebView2)
@@ -447,6 +479,10 @@ painéis. Essa regra já quebrou duas vezes de formas diferentes (escondia o ví
 ao passar o mouse sobre ele; escondia ao apontar para um painel que estava ao
 lado), então virou uma função pura de geometria com teste — inclusive dos dois
 casos que já falharam.
+
+**`internal/atalhos/`** cobre as regras dos atalhos (exigir Ctrl/Alt/Shift/Win,
+não deixar a mesma combinação em duas ações) e o caminho salvar → reabrir →
+continuar igual, inclusive com o arquivo estragado.
 
 **`internal/adblock/`** cobre a decisão de bloquear. Os casos foram escolhidos
 pelos erros que esse tipo de código costuma cometer: bloquear um site inocente

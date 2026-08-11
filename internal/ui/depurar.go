@@ -43,6 +43,10 @@ var (
 	abrirConfig   = os.Getenv("NIMBUS_DEBUG_CONFIG") == "1"
 	jaAbriuConfig bool
 
+	// NIMBUS_DEBUG_ATALHOS=1 -> abre a aba Atalhos já ao iniciar.
+	abrirAtalhos   = os.Getenv("NIMBUS_DEBUG_ATALHOS") == "1"
+	jaAbriuAtalhos bool
+
 	// NIMBUS_DEBUG_SEM_CONTROLES=1 -> começa com a opção "Mostrar controles no
 	// painel" DESLIGADA (o vídeo ocupando o painel inteiro). Existe para
 	// conferir esse modo sem precisar achar e clicar na caixinha da Config.
@@ -80,6 +84,11 @@ func aplicarAuxiliaresDeTeste() {
 	if abrirConfig && !jaAbriuConfig {
 		jaAbriuConfig = true
 		configAberto = true
+	}
+
+	if abrirAtalhos && !jaAbriuAtalhos {
+		jaAbriuAtalhos = true
+		atalhosAberto = true
 	}
 
 	// Também uma vez só, pelo mesmo motivo: assim dá para marcar a caixinha de
@@ -145,6 +154,21 @@ func espiarJanela() {
 	dbgPos = imgui.WindowPos()
 	dbgTam = imgui.WindowSize()
 	dbgHover = imgui.IsWindowHoveredV(imgui.HoveredFlagsChildWindows)
+}
+
+// avisarNaDepuracao imprime uma linha só quando NIMBUS_DEBUG=1.
+//
+// Serve para o que "falhou mas está tudo bem" — por exemplo o arquivo de
+// atalhos não existir na primeira vez que o programa roda. Não pode ir para a
+// tela (não há terminal com -H=windowsgui) nem virar aviso para o dono, que não
+// tem nada a resolver.
+// A quebra de linha é posta aqui, e não em cada chamada, para ninguém esquecer
+// dela e as mensagens saírem embaraladas numa linha só.
+func avisarNaDepuracao(formato string, valores ...any) {
+	if os.Getenv("NIMBUS_DEBUG") != "1" {
+		return
+	}
+	fmt.Fprintln(os.Stderr, fmt.Sprintf(formato, valores...))
 }
 
 func depurar() {

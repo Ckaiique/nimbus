@@ -3,7 +3,8 @@
 ## O que é
 
 **Nimbus**: overlay em **Go + giu (Dear ImGui)** com painéis flutuantes que
-controlam volume, mídia, monitoramento do PC e um player de YouTube embutido.
+controlam volume, mídia, monitoramento do PC e um player de YouTube embutido,
+com atalhos de teclado configuráveis para trocar de serviço.
 Arquitetura de "janela fantasma": uma janela invisível cobre todos os monitores
 e o clique atravessa nos espaços vazios. Autor do projeto: **KST**.
 
@@ -13,9 +14,10 @@ O dono do projeto (Kaique) **não é programador**: documentação e comentário
 ## Regras deste projeto
 
 - Siga o `ESTRUTURA.md` (fonte única da estrutura). Mudou algo? Atualize lá primeiro.
-- **Lógica** em `internal/audio/`, `internal/monitor/` e `internal/player/` —
-  **visual** em `internal/ui/`. Nunca misture: a `ui` só usa as funções públicas
-  desses pacotes (a exceção é a mecânica da própria janela do overlay).
+- **Lógica** em `internal/audio/`, `internal/monitor/`, `internal/player/` e
+  `internal/atalhos/` — **visual** em `internal/ui/`. Nunca misture: a `ui` só
+  usa as funções públicas desses pacotes (a exceção é a mecânica da própria
+  janela do overlay).
 - Sempre manter os **fallbacks** funcionando (áudio em modo demonstração, "GPU --",
   player em janela separada). A tela nunca pode ficar em branco/quebrada.
 - Binário compilado vai em `build/nimbus.exe`.
@@ -486,6 +488,7 @@ Para depurar (variáveis de ambiente, não afetam o uso normal):
 | `NIMBUS_DEBUG_ORDEM=<arquivo>` | grava ali, 1x por segundo, o alvo do overlay na ordem das janelas (-1 = topo absoluto; outro número = entra abaixo da janela do vídeo) |
 | `NIMBUS_DEBUG_PAINEIS=<arquivo>` | grava ali, 1x por segundo, o retângulo de cada painel em coordenadas de TELA (para achar os painéis de fora do programa) |
 | `NIMBUS_DEBUG_CONFIG=1` | abre a aba Config já ao iniciar |
+| `NIMBUS_DEBUG_ATALHOS=1` | abre a aba Atalhos já ao iniciar |
 | `NIMBUS_DEBUG_SEM_CONTROLES=1` | começa sem os botões de mídia e sem o slider de volume (o vídeo ocupando o painel inteiro) |
 
 ⚠️ **Ao testar por captura de tela:** confira antes se a sessão do Windows está
@@ -541,6 +544,43 @@ no painel, tudo que não é vídeo atrapalha a visão**:
    as reservas de 34px (slider) e 52px (rodapé) em `videoDentroDaMusica` viram
    8px. Começa LIGADA: opção nova não muda o painel de quem já usa sozinha.
    Para testar sem clicar: `NIMBUS_DEBUG_SEM_CONTROLES=1`.
+
+### ⌨️ Atalhos de teclado (`internal/atalhos` + painel Atalhos)
+
+A decisão ("qual combinação faz o quê") mora em `internal/atalhos`; quem executa
+é `conferirAtalhos()` no `overlay.go`. O pacote não conhece player nem áudio.
+
+Quatro coisas para não mexer sem entender (as duas primeiras têm teste):
+
+1. **Todo atalho exige Ctrl, Alt, Shift ou Win.** O Nimbus lê o teclado do PC
+   inteiro (ele não tem foco), então um atalho só na tecla "1" dispararia ao
+   digitar 1 em qualquer programa, sem jeito de saber que não era para ele.
+2. **A mesma combinação não fica em duas ações** — a nova tira da antiga.
+3. **`Conferir` pergunta UMA vez por tecla, por quadro.** O bit 1 do
+   `GetAsyncKeyState` ("foi apertada desde a última pergunta") é **apagado pelo
+   Windows ao responder**: perguntar duas vezes sobre a mesma tecla faz a segunda
+   responder "não". Sem o "retrato" (o mapa `toques`), Alt+1 comeria o toque de
+   um Ctrl+1.
+4. **`modificadoresSegurados` exige exatidão** — Alt+1 não pode disparar com
+   Ctrl+Alt+1 segurado (no teclado brasileiro o AltGr manda Ctrl+Alt junto).
+
+Onde acrescentar coisa:
+
+- **serviço novo** já entra sozinho na lista de atalhos e ganha Alt+número pela
+  posição (`acoesDeAtalho`, no `overlay.go`);
+- **ação nova que não é serviço** (algo como "mudo") precisa de um nome em
+  constante — ele vai para o arquivo salvo, e mudar o texto depois faria o
+  Nimbus "esquecer" o atalho que o dono configurou — mais uma linha no `switch`
+  do `conferirAtalhos`;
+- **tecla nova** (algo como Pause) entra na tabela de `teclas.go`.
+
+Quem salva é **um lugar só**: `conferirAtalhos` olha a bandeirinha
+`atalhos.PrecisaSalvar()` a cada quadro. Nenhum botão da tela grava direto —
+assim não existe o botão que esqueceu de salvar. Falha ao salvar aparece **em
+destaque no painel** e é tentada de novo no quadro seguinte: perder a
+configuração em silêncio seria o pior desfecho.
+
+Para testar sem clicar: `NIMBUS_DEBUG_ATALHOS=1` abre o painel já ao iniciar.
 
 ### 🔧 A engrenagem TEM de caber (a coluna dos serviços rola)
 

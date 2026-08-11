@@ -8,7 +8,7 @@
 O **Nimbus** é um overlay em arquitetura de **"janela fantasma"** (a mesma dos
 overlays do Discord e do MSI Afterburner): uma janela invisível cobre **todos os
 monitores**, e dentro dela o Dear ImGui desenha **painéis independentes** —
-**Música**, **Sistema**, **Config** e **Player** — que você move e redimensiona
+**Música**, **Sistema**, **Config**, **Atalhos** e **Player** — que você move e redimensiona
 livremente, inclusive de uma tela para outra.
 
 Nos espaços vazios entre os painéis o clique **atravessa** para o que estiver
@@ -25,7 +25,10 @@ Com ele dá para:
   por QR Code é feito uma vez só e fica guardado);
 - ver o **uso do computador**: CPU, GPU, memória RAM e os 3 processos que mais
   usam CPU, atualizado a cada 2 segundos;
-- escolher entre **7 temas de cores** e ajustar a opacidade da interface.
+- escolher entre **7 temas de cores** e ajustar a opacidade da interface;
+- **atalhos de teclado configuraveis** (de fabrica: Alt+1 abre o YouTube, Alt+2
+  o YT Music... ate Alt+5 no WhatsApp), para trocar de servico sem parar o que
+  esta fazendo.
 
 Ele **não aparece na barra de tarefas** nem no Alt+Tab: fica discreto na
 **bandeja do sistema** (os ícones pequenos ao lado do relógio). Clique no ícone
@@ -84,6 +87,13 @@ nimbus/
 │   │   ├── dados/      ← a lista de domínios embutida no .exe
 │   │   └── *_test.go   ← os testes (a trava dos protegidos mora aqui)
 │   │
+│   ├── atalhos/        ← as combinações de teclas (Alt+1 abre o YouTube...)
+│   │   ├── README.md
+│   │   ├── atalhos.go  ← as regras + a leitura do teclado a cada quadro
+│   │   ├── teclas.go   ← tabela "numero do Windows" ↔ "nome na tela"
+│   │   ├── arquivo.go  ← salva/le %LOCALAPPDATA%\Nimbus\atalhos.txt
+│   │   └── atalhos_test.go
+│   │
 │   ├── audio/          ← som do Windows
 │   │   ├── README.md
 │   │   ├── volume.go   ← pegar/definir volume e mudo (com modo demonstração)
@@ -132,6 +142,8 @@ nimbus/
 - **Falar com o Windows (som, teclas, medições, bandeja)** → `internal/audio/`,
   `internal/monitor/` ou `internal/bandeja/`.
 - **Regras de "pode abrir o programa?"** → `internal/instancia/`.
+- **Qual combinacao de teclas faz o que** → `internal/atalhos/` (so decide qual
+  acao foi pedida; quem executa e a `ui`).
 - **Regra de "isto é anúncio?"** → `internal/adblock/` (só decide, não age).
   Quem age é o `internal/player/`, que fala com o navegador.
 - **Tudo que aparece na tela** (painéis, cores) → `internal/ui/`.
@@ -139,8 +151,9 @@ nimbus/
 - O `main.go` só **liga as partes** — não tem lógica própria.
 - `.exe` compilado → sempre em `build/` (nunca solto na raiz).
 - A `ui` conversa com a lógica **só pelas funções públicas** dos pacotes
-  `audio`, `monitor` e `player` (nunca chama o Windows diretamente) — exceto a
-  mecânica do próprio overlay, que é assunto de janela e vive no `overlay.go`.
+  `audio`, `monitor`, `player` e `atalhos` (nunca chama o Windows diretamente) —
+  exceto a mecânica do próprio overlay, que é assunto de janela e vive no
+  `overlay.go`.
 
 ## Bibliotecas de fora (e por que cada uma)
 

@@ -43,6 +43,7 @@ import (
 	"github.com/AllenDang/cimgui-go/imgui"
 	g "github.com/AllenDang/giu"
 
+	"nimbus/internal/atalhos"
 	"nimbus/internal/audio"
 	"nimbus/internal/bandeja"
 	"nimbus/internal/listas"
@@ -183,7 +184,7 @@ func conferirMonitores() {
 	if dx == 0 && dy == 0 {
 		return // só cresceu/encolheu para a direita ou para baixo: ninguém pula
 	}
-	for _, nome := range []string{"###musica", "###sistema", "###config", "###player"} {
+	for _, nome := range nomesDosPaineis {
 		j := imgui.InternalFindWindowByName(nome)
 		// O embrulho nunca é nil; o nulo fica DENTRO (CData) quando a janela
 		// ainda não existe. Chamar Pos() nesse estado derruba o programa.
@@ -211,6 +212,7 @@ var (
 	menuAberto    = true // Insert liga/desliga o overlay inteiro
 	sistemaAberto = true
 	configAberto  = false
+	atalhosAberto = false
 
 	preparado bool // estilos fixos e transparência já aplicados?
 
@@ -275,6 +277,14 @@ func Rodar(controle *audio.Controle) {
 	// até ficarem prontas (ou se algum arquivo faltar), os botões mostram a
 	// marca desenhada em vetor.
 	carregarImagensDosServicos()
+
+	// Os atalhos de teclado: primeiro as combinações de fábrica, depois o que
+	// o dono configurou (o arquivo manda). Erro aqui é normal — na primeira vez
+	// que o Nimbus roda num PC o arquivo não existe.
+	atalhos.Registrar(acoesDeAtalho())
+	if err := atalhos.Carregar(); err != nil {
+		avisarNaDepuracao("[atalhos] sem arquivo salvo (%v) - usando os de fabrica", err)
+	}
 
 	// REGRA 4: a posição do mouse tem de ser injetada ANTES do NewFrame do
 	// ImGui. O gancho "beforeRender" roda exatamente nesse ponto (depois de
@@ -567,6 +577,11 @@ func antesDoQuadro() {
 		menuAberto = !menuAberto
 	}
 
+	// Os atalhos configuráveis (Alt+1 abre o YouTube...). Lidos do mesmo jeito
+	// que o Insert e no mesmo lugar, para toda a leitura de teclado do overlay
+	// ficar junta — quem for procurar acha de primeira.
+	conferirAtalhos()
+
 	// Pedidos vindos do ícone na bandeja do sistema (clique ou menu). Eles
 	// chegam de outra thread, por isso só viram "bandeirinhas" que a gente
 	// confere aqui — mexer na interface de outra thread não é seguro.
@@ -670,6 +685,9 @@ func desenhar() {
 		if configAberto {
 			janelaConfig()
 		}
+		if atalhosAberto {
+			janelaAtalhos()
+		}
 		janelaPlayer()
 	}
 
@@ -751,6 +769,7 @@ func janelaMusica() {
 	opcoes = append(opcoes,
 		g.Selectable("Sistema").OnClick(func() { sistemaAberto = !sistemaAberto }),
 		g.Selectable("Config").OnClick(func() { configAberto = !configAberto }),
+		g.Selectable("Atalhos").OnClick(func() { atalhosAberto = !atalhosAberto }),
 		g.Separator(),
 		g.Selectable("Sair").OnClick(sair),
 		// Registra o menuzinho como painel: se ele abrir por cima do
@@ -824,6 +843,126 @@ func sliderVolumeVertical() {
 		imgui.SetTooltip(fmt.Sprintf("Volume: %d", nivel))
 	}
 }
+
+// ─────────────────────────── janela ATALHOS ───────────────────────────────
+//
+// Uma linha por ação: o nome, a combinação atual e os botões de mudar/limpar.
+//
+// As colunas são posicionadas por COORDENADA (`SetCursorPosX`), como o rodapé
+// de mídia. É o jeito mais simples de deixar tudo alinhado: com os widgets um
+// depois do outro, cada linha ficaria de um tamanho e a coluna do meio
+// dançaria conforme o nome do serviço fosse curto ou comprido.
+const (
+	colunaDoAtalho = 170 // onde começa o texto "Alt+1"
+	colunaDoMudar  = 272 // onde começa o botão "Mudar"
+)
+
+// Altura 480: são 11 linhas (os serviços mais as seis ações de mídia/janela),
+// o cabeçalho de três linhas e o rodapé. Serviço novo acrescenta uma linha —
+// se passar de ~14, aumente aqui ou o rodapé começa a ficar abaixo da dobra.
+func janelaAtalhos() {
+	g.Window("Atalhos###atalhos").IsOpen(&atalhosAberto).
+		Pos(basePX+posAtalhosX, basePY+posAtalhosY).Size(400, 480).Layout(
+		textoFraco("Clique em Mudar e aperte a combinacao."),
+		textoFraco("Esc cancela. Precisa de Ctrl, Alt,"),
+		textoFraco("Shift ou Win junto com a tecla."),
+		g.Separator(),
+		g.Custom(linhasDeAtalho),
+		g.Separator(),
+		g.Button("Voltar ao padrao de fabrica").Size(-1, 26).OnClick(voltarAtalhosAoPadrao),
+		g.Custom(avisoDoArquivoDeAtalhos),
+		g.Custom(registrarPainel),
+	)
+}
+
+// linhasDeAtalho desenha a tabelinha de ações.
+func linhasDeAtalho() {
+	for _, acao := range atalhos.Acoes() {
+		nome := acao.Nome // cópia: o botão é clicado depois desta volta do laço
+
+		imgui.Text(curto(acao.Rotulo, 24))
+
+		// O que aparece na coluna do meio.
+		texto, cor := "(nenhum)", pal.TextoFraco
+		if a, tem := atalhos.Do(nome); tem {
+			texto, cor = a.Texto(), pal.Texto
+		}
+		if atalhos.Gravando() == nome {
+			texto, cor = "aperte...", pal.Destaque
+		}
+		imgui.SameLine()
+		imgui.SetCursorPosX(colunaDoAtalho)
+		imgui.PushStyleColorVec4(imgui.ColText, cor4(cor))
+		imgui.Text(texto)
+		imgui.PopStyleColor()
+
+		imgui.SameLine()
+		imgui.SetCursorPosX(colunaDoMudar)
+		// SmallButton (e não Button) para a linha ficar baixinha: com o botão
+		// normal, as onze linhas não cabiam no painel.
+		//
+		// O "##nome" é o truque do ImGui para dois botões com o MESMO texto
+		// visível não virarem o mesmo botão (ele identifica pelo texto).
+		if imgui.SmallButton("Mudar##" + nome) {
+			atalhos.Gravar(nome)
+		}
+
+		// O "limpar" só aparece em quem tem atalho — botão que não faz nada só
+		// confunde.
+		if _, tem := atalhos.Do(nome); tem {
+			imgui.SameLine()
+			if imgui.SmallButton("X##" + nome) {
+				atalhos.Limpar(nome) // quem salva é o conferirAtalhos
+			}
+		}
+	}
+
+	// O motivo da última combinação recusada (por exemplo, apertar só o "1").
+	if motivo := atalhos.ErroAoGravar(); motivo != "" {
+		imgui.PushStyleColorVec4(imgui.ColText, cor4(pal.Destaque))
+		imgui.Text(curto(motivo, 40))
+		imgui.PopStyleColor()
+	}
+}
+
+// avisoDoArquivoDeAtalhos conta onde os atalhos ficam guardados — e avisa se
+// não deu para salvar.
+//
+// Falha ao salvar é justamente o tipo de coisa que NÃO pode ficar em silêncio:
+// a pessoa configuraria tudo, fecharia o Nimbus e perderia o trabalho sem
+// entender por quê.
+func avisoDoArquivoDeAtalhos() {
+	if erroAoSalvarAtalhos == "" {
+		textoFraco("Salvo em %LOCALAPPDATA%\\Nimbus.").Build()
+		return
+	}
+	imgui.PushStyleColorVec4(imgui.ColText, cor4(pal.Destaque))
+	imgui.Text("Nao consegui salvar:")
+	imgui.Text(curto(erroAoSalvarAtalhos, 40))
+	imgui.PopStyleColor()
+}
+
+// voltarAtalhosAoPadrao devolve as combinações de fábrica (Alt+1, Alt+2...).
+func voltarAtalhosAoPadrao() {
+	atalhos.CancelarGravacao()
+	atalhos.Registrar(acoesDeAtalho())
+	salvarAtalhos()
+}
+
+// salvarAtalhos grava o arquivo e guarda o motivo se não der.
+//
+// Não baixa a bandeirinha quando falha: aí a interface tenta de novo no quadro
+// seguinte, e se for algo passageiro (disco ocupado) resolve sozinho.
+func salvarAtalhos() {
+	if err := atalhos.Salvar(); err != nil {
+		erroAoSalvarAtalhos = err.Error()
+		return
+	}
+	erroAoSalvarAtalhos = ""
+	atalhos.MarcarSalvo()
+}
+
+var erroAoSalvarAtalhos string
 
 // ─────────────────────────── janela SISTEMA ───────────────────────────────
 func janelaSistema() {
@@ -1180,13 +1319,7 @@ func explicacaoDoModo() string {
 // acha a janelinha mesmo quando o título visível muda (o painel Música troca
 // de título no modo demonstração, por exemplo).
 func recolocarPaineis() {
-	lugares := map[string][2]float32{
-		"###musica":  {posMusicaX, posMusicaY},
-		"###sistema": {posSistemaX, posSistemaY},
-		"###config":  {posConfigX, posConfigY},
-		"###player":  {posPlayerX, posPlayerY},
-	}
-	for nome, p := range lugares {
+	for nome, p := range lugarDoPainel {
 		imgui.SetWindowPosStr(nome, imgui.Vec2{X: basePX + p[0], Y: basePY + p[1]})
 		imgui.SetWindowCollapsedStr(nome, false)
 	}
@@ -1200,8 +1333,35 @@ const (
 	posMusicaX, posMusicaY   = 80, 80
 	posSistemaX, posSistemaY = 80, 398
 	posConfigX, posConfigY   = 410, 398
+	posAtalhosX, posAtalhosY = 760, 398
 	posPlayerX, posPlayerY   = 420, 80
 )
+
+// lugarDoPainel é a lista dos painéis e de onde cada um nasce.
+//
+// ⚠️ Painel novo entra AQUI, e em nenhum outro lugar. Antes esta lista existia
+// duas vezes (uma para recolocar os painéis, outra para empurrá-los quando um
+// monitor é ligado ou desligado) e era questão de tempo até alguém acrescentar
+// um painel numa e esquecer da outra — o painel esquecido pularia de monitor
+// sozinho, um bug daqueles difíceis de ligar à causa.
+//
+// A chave é o que vem DEPOIS de "###" no título: o ImGui identifica a janela por
+// esse pedaço, então "###musica" acha a janelinha mesmo quando o título visível
+// muda (o painel Música troca de título no modo demonstração, por exemplo).
+var lugarDoPainel = map[string][2]float32{
+	"###musica":  {posMusicaX, posMusicaY},
+	"###sistema": {posSistemaX, posSistemaY},
+	"###config":  {posConfigX, posConfigY},
+	"###atalhos": {posAtalhosX, posAtalhosY},
+	"###player":  {posPlayerX, posPlayerY},
+}
+
+// nomesDosPaineis são as chaves do mapa acima, em ordem fixa. A ordem não muda
+// nada no resultado, mas percorrer um mapa em Go dá ordem aleatória a cada
+// volta, e isso deixaria a depuração confusa sem motivo.
+var nomesDosPaineis = []string{
+	"###musica", "###sistema", "###config", "###atalhos", "###player",
+}
 
 // quaseIgual compara dois tamanhos/posições com folga de alguns pixels (o
 // encaixe do ImGui pode deixar uma diferença de 1 ou 2).
@@ -1792,6 +1952,95 @@ func abrirPlayerAgora() {
 	procShowWindow.Call(acharIDJanela(), mostrarSemAtivar)
 	procSetForegroundWindow.Call(acharIDJanela())
 	player.Focar()
+}
+
+// ─────────────────────────── atalhos de teclado ───────────────────────────
+
+// Nomes das ações que não são serviço. Ficam em constantes porque são gravados
+// no arquivo de atalhos: mudar o texto aqui faria o Nimbus "esquecer" o atalho
+// que a pessoa configurou (a linha do arquivo não casaria mais com nada).
+const (
+	acaoPlayPause = "play-pause"
+	acaoProxima   = "proxima"
+	acaoAnterior  = "anterior"
+	acaoSemVideo  = "sem-video"
+	acaoParar     = "parar"
+	acaoPaineis   = "paineis"
+)
+
+// acoesDeAtalho monta a lista do que pode ganhar atalho, na ordem em que
+// aparece na aba Atalhos.
+//
+// Os serviços saem da MESMA lista dos botões (`servicos`), então um serviço novo
+// entra aqui sozinho — e já com Alt+número de fábrica, seguindo a posição dele.
+// Foi o que o dono pediu: Alt+1 YouTube, Alt+2 YT Music, e assim por diante.
+func acoesDeAtalho() []atalhos.Acao {
+	lista := make([]atalhos.Acao, 0, len(servicos)+6)
+
+	for i, s := range servicos {
+		acao := atalhos.Acao{Nome: s.Qual, Rotulo: s.Rotulo}
+		// Só até o nono: Alt+0 seria estranho e do décimo em diante não há
+		// número. Quem passar disso configura na mão, na aba Atalhos.
+		if i < 9 {
+			acao.PadraoMods = atalhos.ModAlt
+			acao.PadraoTecla = uint16(0x31 + i) // 0x31 é o "1"
+		}
+		lista = append(lista, acao)
+	}
+
+	// As outras ações nascem SEM atalho, de propósito: são menos usadas, e
+	// quanto menos combinação o Nimbus reservar de fábrica, menor a chance de
+	// atropelar o atalho de outro programa.
+	return append(lista,
+		atalhos.Acao{Nome: acaoPlayPause, Rotulo: "Play / pause"},
+		atalhos.Acao{Nome: acaoProxima, Rotulo: "Proxima faixa"},
+		atalhos.Acao{Nome: acaoAnterior, Rotulo: "Faixa anterior"},
+		atalhos.Acao{Nome: acaoSemVideo, Rotulo: "Ver / esconder o video"},
+		atalhos.Acao{Nome: acaoParar, Rotulo: "Parar o servico"},
+		// Rótulo curto de propósito: acima de ~24 letras a coluna do meio
+		// empurraria o texto do atalho para fora do lugar.
+		atalhos.Acao{Nome: acaoPaineis, Rotulo: "Esconder / mostrar tudo"},
+	)
+}
+
+// conferirAtalhos lê o teclado e executa a ação que a pessoa disparou. Roda uma
+// vez por quadro, junto da leitura da tecla Insert.
+func conferirAtalhos() {
+	acao := atalhos.Conferir()
+
+	// Um único lugar grava o arquivo, e é aqui: assim nenhum botão da tela
+	// precisa lembrar de salvar (e esquecer num deles).
+	if atalhos.PrecisaSalvar() {
+		salvarAtalhos()
+	}
+
+	if acao == "" {
+		return
+	}
+
+	switch acao {
+	case acaoPlayPause:
+		audio.PlayPause()
+	case acaoProxima:
+		audio.ProximaFaixa()
+	case acaoAnterior:
+		audio.FaixaAnterior()
+	case acaoSemVideo:
+		alternarVideo()
+	case acaoParar:
+		fecharPlayer()
+	case acaoPaineis:
+		menuAberto = !menuAberto
+	default:
+		// Sobrou: é um serviço. Só chegam aqui nomes que o próprio Nimbus
+		// registrou, então não há como pedir um serviço que não existe.
+		//
+		// O `menuAberto = true` é essencial: se os painéis estiverem escondidos
+		// (Insert), abrir um serviço sem mostrá-los deixaria o som tocando sem
+		// nada na tela — a pessoa apertaria Alt+1 e pensaria que não funcionou.
+		menuAberto = true
+		abrirPlayer(acao)
+	}
 }
 
 // alternarVideo esconde/mostra o vídeo. Esconder NÃO para o som —
