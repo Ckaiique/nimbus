@@ -71,6 +71,10 @@ nimbus/
 │   │   ├── README.md
 │   │   └── bandeja.go  ← ícone, clique e menu (Mostrar/Esconder, Sair)
 │   │
+│   ├── instancia/      ← trava que impede abrir dois Nimbus ao mesmo tempo
+│   │   ├── README.md
+│   │   └── instancia.go ← Unica() / Liberar() (mutex nomeado do Windows)
+│   │
 │   ├── monitor/        ← medições do computador
 │   │   ├── README.md
 │   │   ├── monitor.go  ← CPU, RAM e processos mais pesados (roda em 2º plano)
@@ -98,6 +102,7 @@ nimbus/
 
 - **Falar com o Windows (som, teclas, medições, bandeja)** → `internal/audio/`,
   `internal/monitor/` ou `internal/bandeja/`.
+- **Regras de "pode abrir o programa?"** → `internal/instancia/`.
 - **Regra de "isto é anúncio?"** → `internal/adblock/` (só decide, não age).
   Quem age é o `internal/player/`, que fala com o navegador.
 - **Tudo que aparece na tela** (painéis, cores) → `internal/ui/`.
@@ -128,3 +133,7 @@ nimbus/
   separada; em último caso, no navegador padrão.
 - **`assets/nimbus.ico` ausente** → a bandeja usa o ícone padrão do Windows;
   nunca fica sem ícone.
+- **Abrir o Nimbus com ele já aberto** → o segundo avisa numa caixinha e sai
+  sozinho, em vez de dois programas brigarem pela tela.
+- **Trava de instância única falhando** → o Nimbus abre assim mesmo (melhor um
+  a mais do que um programa que se recusa a iniciar).

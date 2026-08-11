@@ -516,6 +516,25 @@ de verdade. O direito existe porque **Netflix e Disney+ usam DRM** (proteção d
 conteúdo) e o WebView2 não traz o componente que decifra isso — o site abre, mas
 o vídeo pode se recusar a tocar. No navegador normal funciona.
 
+### Um Nimbus por vez (`internal/instancia`)
+
+Como o Nimbus não aparece na barra de tarefas nem no Alt+Tab, é fácil abrir o
+atalho achando que ele estava fechado. Dois Nimbus juntos dão bug de verdade:
+dois ícones na bandeja, dois overlays reafirmando "eu fico no topo" a cada
+quadro (tela piscando), duas janelas de vídeo e a tecla Insert respondendo em
+dobro (um esconde, o outro mostra).
+
+A trava é um **mutex nomeado** do Windows (`Unica()` no `main.go`): quem abre
+primeiro fica com a plaquinha; o segundo recebe `ERROR_ALREADY_EXISTS`, mostra
+uma caixinha explicando onde está o ícone da bandeja e encerra.
+
+Três detalhes que não podem mudar:
+
+1. a checagem vem **depois** do desvio do `--player` — o modo player é um
+   processo FILHO do próprio Nimbus e seria bloqueado pelo pai;
+2. o aviso é `MessageBox`, não `Println`: com `-H=windowsgui` não há terminal;
+3. se o Windows não criar a plaquinha, o Nimbus **abre assim mesmo** (fallback).
+
 ## Pegadinhas conhecidas
 
 - **`CoInitializeEx` "com erro" que não é erro:** a biblioteca go-ole devolve
