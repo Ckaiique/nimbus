@@ -30,10 +30,25 @@ import (
 // pode se recusar a tocar mesmo com o site abrindo normalmente. Nesse caso use
 // o botão DIREITO no ícone: abre no navegador de verdade, que tem o DRM.
 var enderecos = map[string]string{
-	"youtube": "https://www.youtube.com",
-	"music":   "https://music.youtube.com",
-	"netflix": "https://www.netflix.com",
-	"disney":  "https://www.disneyplus.com",
+	"youtube":  "https://www.youtube.com",
+	"music":    "https://music.youtube.com",
+	"netflix":  "https://www.netflix.com",
+	"disney":   "https://www.disneyplus.com",
+	"whatsapp": "https://web.whatsapp.com",
+}
+
+// titulos é o nome que aparece na barra da janela no modo "janela separada"
+// (o plano B, quando o site é aberto fora do overlay).
+//
+// Existe como mapa porque antes o título era decidido com um "if qual ==
+// music": qualquer outro serviço acabava com a janela do Netflix escrito
+// "YouTube - mini player".
+var titulos = map[string]string{
+	"youtube":  "YouTube",
+	"music":    "YouTube Music",
+	"netflix":  "Netflix",
+	"disney":   "Disney+",
+	"whatsapp": "WhatsApp",
 }
 
 // Abrir dispara um novo processo do próprio programa em modo player.
@@ -52,13 +67,13 @@ func Abrir(qual string) {
 func Rodar(qual string) {
 	endereco, existe := enderecos[qual]
 	if !existe {
-		endereco = enderecos["youtube"]
+		// Nome desconhecido: cai no padrão. Trocar o "qual" (e não só o
+		// endereço) é o que faz o título da janela combinar com o site.
+		qual = "youtube"
+		endereco = enderecos[qual]
 	}
 
-	titulo := "YouTube - mini player"
-	if qual == "music" {
-		titulo = "YouTube Music - mini player"
-	}
+	titulo := titulos[qual] + " - mini player"
 
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
 		AutoFocus: true,

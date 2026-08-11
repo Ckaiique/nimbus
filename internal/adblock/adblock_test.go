@@ -48,7 +48,7 @@ func TestDeveBloquear(t *testing.T) {
 		{"com usuario e senha", "https://eu:senha@doubleclick.net/x", true},
 		{"websocket de rastreio", "wss://analytics.google.com/socket", true},
 
-		// ── os quatro serviços: NUNCA podem cair ──────────────────────────
+		// ── os serviços do Nimbus: NUNCA podem cair ───────────────────────
 		{"youtube", "https://www.youtube.com/watch?v=abc", false},
 		{"youtube api", "https://www.youtube.com/api/stats/ads?x=1", false},
 		{"video do youtube", "https://r5---sn-abc.googlevideo.com/videoplayback?x", false},

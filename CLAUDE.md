@@ -485,6 +485,8 @@ Para depurar (variáveis de ambiente, não afetam o uso normal):
 | `NIMBUS_DEBUG_ALFA=0.45` | começa com essa opacidade |
 | `NIMBUS_DEBUG_ORDEM=<arquivo>` | grava ali, 1x por segundo, o alvo do overlay na ordem das janelas (-1 = topo absoluto; outro número = entra abaixo da janela do vídeo) |
 | `NIMBUS_DEBUG_PAINEIS=<arquivo>` | grava ali, 1x por segundo, o retângulo de cada painel em coordenadas de TELA (para achar os painéis de fora do programa) |
+| `NIMBUS_DEBUG_CONFIG=1` | abre a aba Config já ao iniciar |
+| `NIMBUS_DEBUG_SEM_CONTROLES=1` | começa sem os botões de mídia e sem o slider de volume (o vídeo ocupando o painel inteiro) |
 
 ⚠️ **Ao testar por captura de tela:** confira antes se a sessão do Windows está
 **desbloqueada**. Com o PC bloqueado, a captura mostra a tela de bloqueio e os
@@ -492,7 +494,7 @@ números não têm relação nenhuma com o programa (já caí nessa).
 
 ## Serviços do player (`servicos` em `internal/ui/overlay.go`)
 
-Os botões (YouTube, YT Music, Netflix, Disney+) mostram a **logo de verdade**,
+Os botões (YouTube, YT Music, Netflix, Disney+, WhatsApp) mostram a **logo de verdade**,
 lida de `assets/servicos/<nome>.png` (o nome do arquivo tem de ser igual ao campo
 `Qual` do serviço). O carregamento está em `internal/ui/imagens.go`.
 
@@ -506,10 +508,77 @@ para os widgets prontos dele. Por isso `cor32()` multiplica pelo `Alfa`, e a
 imagem é desenhada com uma "tinta" branca de alfa `Alfa` — sem isso os ícones
 ficariam opacos enquanto o resto do painel ficava translúcido.
 
-Para acrescentar um serviço: inclua o endereço no mapa `enderecos`
-(`internal/player/player.go`), um item na lista `servicos` e a logo em
-`assets/servicos/`. As formas de reserva são `playRetangulo`, `playCirculo` e
-`letra`.
+Para acrescentar um serviço, quatro passos:
+
+1. o endereço no mapa `enderecos` e o nome no mapa `titulos`
+   (`internal/player/player.go`);
+2. um item na lista `servicos` (`internal/ui/overlay.go`) — o campo `Qual` é o
+   que amarra tudo: é o nome do arquivo da logo e a chave dos dois mapas;
+3. a logo em `assets/servicos/<Qual>.png`. Logo baixada da web quase sempre vem
+   em **WebP**: converta com `go run ./ferramentas/converter-logo <arquivo> <Qual>`.
+   ⚠️ Não use o Paint nem conversor de site — o decodificador de WebP do Windows
+   entrega WebP transparente **todo preto** (já aconteceu);
+4. o domínio na lista `dominiosProtegidos` (`internal/adblock/listas.go`) — é a
+   trava que impede uma atualização futura da EasyList de derrubar o serviço.
+
+As formas de reserva (usadas até a imagem carregar, ou se o arquivo faltar) são
+`playRetangulo`, `playCirculo` e `letra`.
+
+### O painel Música: o que fica nele e o que saiu
+
+Duas mudanças pedidas pelo dono, pelo mesmo motivo — **ao juntar a aba do player
+no painel, tudo que não é vídeo atrapalha a visão**:
+
+1. **"Sem video (so escutar)" e "Parar" não são mais botões.** Eram uma faixa na
+   área principal, justamente onde o vídeo entra. Foram para o menuzinho da
+   **engrenagem** (`opcoes`, em `janelaMusica`), onde não custam espaço. Elas só
+   aparecem com um serviço carregado — senão seriam linhas mortas. E lembre:
+   **"Parar" é o único jeito de o som calar**; fechar a janelinha do vídeo
+   apenas esconde.
+2. **Os botões de mídia e o slider de volume são opcionais**
+   (`mostrarControles`, caixinha "Mostrar controles no painel" na aba Config).
+   Desligados, os dois desaparecem **e o vídeo cresce sobre o espaço deles** —
+   as reservas de 34px (slider) e 52px (rodapé) em `videoDentroDaMusica` viram
+   8px. Começa LIGADA: opção nova não muda o painel de quem já usa sozinha.
+   Para testar sem clicar: `NIMBUS_DEBUG_SEM_CONTROLES=1`.
+
+### 🔧 A engrenagem TEM de caber (a coluna dos serviços rola)
+
+Ao acrescentar o quinto serviço (WhatsApp), a coluna de logos passou da altura
+do painel e **empurrou a engrenagem para fora da tela** — e com ela sumiram
+Sistema, Config, Sair e as opções do player. Sem aviso nenhum: o ImGui só corta
+o que não cabe.
+
+Só aumentar a altura padrão do painel **não resolve**: o ImGui guarda o tamanho
+que o dono deixou no `imgui.ini`, e é o arquivo dele que manda dali em diante.
+
+A correção é a `colunaDeServicos`: ela **reserva o espaço da engrenagem
+primeiro** (`altBotaoMenu` + `espacoEntreItens`) e desenha as logos num pedaço
+que **rola** com a roda do mouse. Assim a engrenagem nunca mais sai da tela,
+venha o sexto ou o décimo serviço.
+
+⚠️ Se algum dia mudar a altura do botão da engrenagem, mude na constante
+`altBotaoMenu` — a conta da `colunaDeServicos` tem de casar com o tamanho real
+dele, senão volta a sobrar (ou faltar) espaço.
+
+### WhatsApp: o serviço que não é vídeo
+
+O login por QR Code **não se perde ao fechar** o Nimbus: o WebView2 guarda o
+perfil em `%AppData%\nimbus.exe` (disco, não pasta temporária). Lê-se o código
+uma vez e pronto.
+
+Duas consequências do jeito que o player funciona, que valem para o WhatsApp:
+
+- no **modo econômico** (o padrão), trocar de serviço manda a página para
+  `about:blank` — o WhatsApp desconecta e reconecta ao voltar. Não pede QR de
+  novo, mas passa pela tela de "conectando". Quem quiser ele sempre online usa a
+  opção *"manter cada serviço carregado"* na aba Config;
+- **aviso de mensagem nova não funciona** (a notificação do navegador não tem
+  onde aparecer, e a página fica descarregada no modo econômico). Serve para ler
+  e responder quando você abre, não para avisar que chegou.
+
+Digitar funciona porque o navegador tem **janela própria**, que pode receber
+foco (veja a seção da janela do vídeo) — não precisa mexer no `precisaTeclado()`.
 
 **Clique esquerdo** abre dentro do Nimbus; **clique direito** abre no navegador
 de verdade. O direito existe porque **Netflix e Disney+ usam DRM** (proteção de

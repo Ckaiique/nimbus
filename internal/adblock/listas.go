@@ -178,7 +178,7 @@ var dominiosReserva = paraConjunto([]string{
 
 // dominiosProtegidos: o que NUNCA pode ser bloqueado, aconteça o que acontecer.
 //
-// São os quatro serviços que o Nimbus abre, mais os servidores de onde o vídeo
+// São os serviços que o Nimbus abre, mais os servidores de onde o conteúdo
 // deles realmente sai. Isto é uma TRAVA DE SEGURANÇA, não uma otimização:
 // bloquear "googlevideo.com" por engano não tiraria um anúncio — apagaria o
 // vídeo inteiro, e o dono veria só uma tela preta sem entender o motivo.
@@ -216,6 +216,12 @@ var dominiosProtegidos = paraConjunto([]string{
 	"bamgrid.com",
 	"go.com",
 	"edgedatg.com",
+
+	// WhatsApp Web. O "whatsapp.net" é de onde vêm as fotos de perfil, os
+	// áudios e as imagens das conversas — bloquear ali não tira anúncio
+	// nenhum (o WhatsApp não tem), só deixaria a conversa cheia de buraco.
+	"whatsapp.com",
+	"whatsapp.net",
 })
 
 // paraConjunto transforma a lista escrita acima num map de consulta rápida.
@@ -235,7 +241,7 @@ func paraConjunto(nomes []string) map[string]bool {
 // "googlevideo.com", ou sobre "r5---sn-abc.googlevideo.com", nunca entra na
 // nossa lista. Não é exagero: a EasyList é feita para navegador comum, onde
 // bloquear um servidor de vídeo por engano estraga um site. Aqui estragaria
-// justamente as quatro coisas que o Nimbus existe para mostrar.
+// justamente os serviços que o Nimbus existe para abrir.
 //
 // ⚠️ Isto NÃO se aplica à lista escrita à mão (dominiosReserva), que é curada
 // por nós e usa o desempate por especificidade — é o que mantém

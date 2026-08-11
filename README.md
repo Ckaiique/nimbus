@@ -70,6 +70,12 @@ o meio inteiro livre.
 O valor é sempre o **real** do Windows: se você mexer no volume pelo teclado ou
 por outro programa, a barra acompanha.
 
+**Dá para tirar do caminho:** a caixinha **"Mostrar controles no painel"**, na
+aba Config, desliga a barra de volume **e** os botões de mídia — e o vídeo passa
+a ocupar o painel inteiro. É para quem junta a aba do player no painel e quer
+toda a área para a imagem. O volume do Windows e as teclas de mídia do teclado
+continuam funcionando normalmente.
+
 ### ⏯️ Controle de mídia
 
 Botões **anterior**, **play/pause** e **próxima**.
@@ -79,15 +85,17 @@ Spotify, VLC, navegador, YouTube. Funciona porque o Nimbus simula as teclas de
 mídia do teclado, então quem estiver tocando obedece. É especialmente útil em
 teclado que não tem essas teclas.
 
-### 📺 Serviços de vídeo embutidos
+### 📺 Serviços embutidos
 
-Quatro botões com as logos: **YouTube**, **YouTube Music**, **Netflix** e **Disney+**.
+Cinco botões com as logos: **YouTube**, **YouTube Music**, **Netflix**,
+**Disney+** e **WhatsApp**.
 
-**Para que serve:** assistir ou ouvir **dentro do próprio overlay**, sem abrir o
-navegador e sem perder de vista o que você está fazendo. A janelinha do player
-flutua como qualquer painel: você move, redimensiona e deixa num canto da tela.
+**Para que serve:** assistir, ouvir ou responder mensagem **dentro do próprio
+overlay**, sem abrir o navegador e sem perder de vista o que você está fazendo. A
+janelinha do player flutua como qualquer painel: você move, redimensiona e deixa
+num canto da tela.
 
-Os quatro serviços ficam num **menu lateral** no painel Música (as logos, uma
+Os serviços ficam num **menu lateral** no painel Música (as logos, uma
 embaixo da outra), com os controles ao lado. A janelinha do player é **só o
 navegador** — nenhum espaço desperdiçado com botões.
 
@@ -101,9 +109,9 @@ fora e elas se separam de novo.
 
 <div align="center">
 
-<img src="docs/players.png" alt="Os quatro serviços abertos dentro do Nimbus" width="820">
+<img src="docs/players.png" alt="Os quatro serviços de vídeo abertos dentro do Nimbus" width="820">
 
-*Os quatro serviços rodando dentro do overlay. Cada um numa janelinha que você
+*Os quatro serviços de vídeo rodando dentro do overlay. Cada um numa janelinha que você
 move, redimensiona e junta com os outros painéis.*
 
 </div>
@@ -117,17 +125,41 @@ O serviço que está carregado ganha um **risquinho verde** embaixo do ícone.
 > navegador normal tem o DRM. YouTube e YouTube Music funcionam embutidos,
 > inclusive tocando.
 
+#### 💬 WhatsApp
+
+O **WhatsApp Web** entra pela mesma porta dos outros: abre numa janelinha
+flutuante, dá para digitar normalmente e responder sem sair do jogo ou da
+planilha.
+
+O **login por QR Code é feito uma vez só** — o Nimbus guarda a sessão do
+navegador em disco, então nas próximas vezes ele já abre logado.
+
+Dois avisos honestos:
+
+- **aviso de mensagem nova não funciona.** A notificação do navegador não tem
+  onde aparecer no overlay. O WhatsApp aqui serve para **ler e responder quando
+  você abre**, não para avisar que chegou mensagem;
+- por padrão o Nimbus economiza memória **descarregando** o serviço que você não
+  está usando, então o WhatsApp passa pela tela de "conectando" ao voltar (sem
+  pedir o QR de novo). Se preferir ele sempre conectado, marque *"manter cada
+  serviço carregado"* na aba **Config** — em troca de mais memória.
+
 ### 🎧 Modo "só escutar"
 
-Botão **Sem vídeo** quando um serviço está aberto.
+Opção **Sem vídeo** no menuzinho da **engrenagem** (o ícone no pé da coluna de
+logos), que aparece quando um serviço está aberto.
 
 **Para que serve:** ouvir uma playlist sem a imagem ocupando a tela. Esconde só
 o vídeo — **a música continua tocando** — e a janelinha some, ficando só os
-controles. O botão vira **Ver vídeo** para trazer a imagem de volta, do ponto
+controles. A opção vira **Ver vídeo** para trazer a imagem de volta, do ponto
 onde estava.
 
-Ao lado dele fica o **Parar**, que é diferente: encerra o serviço de vez e o som
+Logo abaixo fica o **Parar**, que é diferente: encerra o serviço de vez e o som
 junto. Use o *Sem vídeo* para continuar ouvindo; o *Parar* para acabar mesmo.
+
+> As duas eram botões dentro do painel. Foram para a engrenagem porque ocupavam
+> uma faixa justamente onde o vídeo aparece quando você junta a aba do player com
+> o painel Música.
 
 ### 🗂️ Dois modos de player (opção na Config)
 

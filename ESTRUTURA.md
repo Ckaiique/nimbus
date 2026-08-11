@@ -21,6 +21,8 @@ Com ele dá para:
   (funciona com qualquer player — simula as teclas de mídia do teclado);
 - assistir **YouTube ou YouTube Music DENTRO do overlay** (motor do Edge /
   WebView2, que já vem no Windows), com modo "só escutar";
+- ler e responder o **WhatsApp Web** sem sair do que você está fazendo (o login
+  por QR Code é feito uma vez só e fica guardado);
 - ver o **uso do computador**: CPU, GPU, memória RAM e os 3 processos que mais
   usam CPU, atualizado a cada 2 segundos;
 - escolher entre **7 temas de cores** e ajustar a opacidade da interface.
@@ -51,7 +53,23 @@ nimbus/
 │       ├── youtube.png
 │       ├── music.png
 │       ├── netflix.png
-│       └── disney.png
+│       ├── disney.png
+│       └── whatsapp.png
+│
+├── docs/               ← documentação extra e as imagens do README
+│   ├── README.md
+│   ├── LICENCA-LISTAS.md  ← a licença das listas da EasyList (leia antes de mexer)
+│   ├── gerar-imagens.ps1  ← tira as fotos dos painéis para o README
+│   ├── gerar-imagens-player.ps1
+│   └── *.png              ← as fotos geradas
+│
+├── ferramentas/        ← programinhas rodados À MÃO (nada daqui entra no .exe)
+│   ├── README.md
+│   ├── gerar-listas/   ← baixa a EasyList e regenera a lista embutida
+│   │   ├── README.md
+│   │   └── main.go
+│   └── converter-logo/ ← converte uma imagem (WebP/JFIF/JPG) na logo PNG
+│       └── main.go
 │
 ├── internal/           ← LÓGICA e VISUAL, separados em pastas
 │   ├── README.md
@@ -60,7 +78,11 @@ nimbus/
 │   │   ├── adblock.go  ← a decisão: DeveBloquear(url) (função pura, testada)
 │   │   ├── listas.go   ← as duas listas embutidas: bloquear / nunca bloquear
 │   │   ├── limpeza.go  ← CSS/JS injetado: esconde anúncio e pula o do YouTube
-│   │   └── adblock_test.go
+│   │   ├── easylist.go ← entende o formato das regras da EasyList
+│   │   ├── carregar.go ← monta a lista que vale (baixada > embutida)
+│   │   ├── arquivo.go  ← lê/grava o arquivo de lista em disco
+│   │   ├── dados/      ← a lista de domínios embutida no .exe
+│   │   └── *_test.go   ← os testes (a trava dos protegidos mora aqui)
 │   │
 │   ├── audio/          ← som do Windows
 │   │   ├── README.md
@@ -74,6 +96,11 @@ nimbus/
 │   ├── instancia/      ← trava que impede abrir dois Nimbus ao mesmo tempo
 │   │   ├── README.md
 │   │   └── instancia.go ← Unica() / Liberar() (mutex nomeado do Windows)
+│   │
+│   ├── listas/         ← atualizador da lista de anúncios NO PC DO DONO
+│   │   ├── listas.go   ← baixa a lista nova de vez em quando e guarda em disco
+│   │   ├── depurar.go
+│   │   └── listas_test.go
 │   │
 │   ├── monitor/        ← medições do computador
 │   │   ├── README.md
@@ -92,7 +119,9 @@ nimbus/
 │       ├── overlay.go  ← a mecânica do overlay + os painéis
 │       ├── tema.go     ← paleta derivada de 5 cores base + os 7 presets
 │       ├── imagens.go  ← carrega as logos dos serviços como textura do ImGui
-│       └── depurar.go  ← saída de depuração (ligada por variável de ambiente)
+│       ├── depurar.go  ← saída de depuração (ligada por variável de ambiente)
+│       ├── depurar_ordem.go ← grava a ordem das janelas (NIMBUS_DEBUG_ORDEM)
+│       └── overlay_test.go  ← testa "painel cobre o vídeo?" (já quebrou 2x)
 │
 └── build/              ← programas compilados (.exe) ficam aqui
     └── README.md

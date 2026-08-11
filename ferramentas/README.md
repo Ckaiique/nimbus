@@ -7,6 +7,7 @@ que entra no repositório.
 | Pasta | O que faz |
 |---|---|
 | `gerar-listas/` | Baixa as listas públicas da EasyList e regenera a lista de domínios de anúncio que vai embutida no `.exe` |
+| `converter-logo/` | Converte uma imagem baixada da internet (WebP, JFIF, JPG) na logo PNG do botão de um serviço |
 
 ## Por que `ferramentas/` e não `cmd/`
 

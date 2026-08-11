@@ -723,22 +723,45 @@ func janelaMusica() {
 
 	// Coluna da ESQUERDA: o menu com os serviços e, no pé, a engrenagem que
 	// abre o menuzinho de Sistema / Config / Sair (tudo junto, sincronizado).
-	menu := make([]g.Widget, 0, len(servicos)+2)
-	for i := range servicos {
-		menu = append(menu, botaoServico(servicos[i]))
+	menu := make([]g.Widget, 0, 3)
+	menu = append(menu, g.Custom(colunaDeServicos))
+	// As opções do menuzinho da engrenagem, de cima para baixo.
+	//
+	// As duas primeiras ("Sem video" e "Parar") eram dois BOTÕES na área
+	// principal do painel. Foram para cá porque ocupavam uma faixa justamente
+	// onde o vídeo fica quando a janelinha do player é juntada com este painel
+	// (viram abas) — atrapalhavam a visão. No menu não custam espaço nenhum.
+	//
+	// Elas só aparecem quando existe um serviço carregado: sem isso, seriam
+	// duas linhas mortas que não fazem nada.
+	opcoes := []g.Widget{}
+	if carregado {
+		rotuloVideo := "Ver video"
+		if visivel {
+			rotuloVideo = "Sem video (so escutar)"
+		}
+		opcoes = append(opcoes,
+			g.Selectable(rotuloVideo).OnClick(alternarVideo),
+			// "Parar" é o único jeito de o som calar de verdade: fechar a
+			// janelinha do vídeo apenas esconde, e a música continua.
+			g.Selectable("Parar").OnClick(fecharPlayer),
+			g.Separator(),
+		)
 	}
+	opcoes = append(opcoes,
+		g.Selectable("Sistema").OnClick(func() { sistemaAberto = !sistemaAberto }),
+		g.Selectable("Config").OnClick(func() { configAberto = !configAberto }),
+		g.Separator(),
+		g.Selectable("Sair").OnClick(sair),
+		// Registra o menuzinho como painel: se ele abrir por cima do
+		// vídeo, o vídeo sai da frente enquanto o cursor estiver nele
+		// (senão as opções ficariam escondidas atrás do vídeo).
+		g.Custom(registrarPainel),
+	)
+
 	menu = append(menu,
 		g.Custom(botaoMenuSistema),
-		g.Popup("##menuSistema").Layout(
-			g.Selectable("Sistema").OnClick(func() { sistemaAberto = !sistemaAberto }),
-			g.Selectable("Config").OnClick(func() { configAberto = !configAberto }),
-			g.Separator(),
-			g.Selectable("Sair").OnClick(sair),
-			// Registra o menuzinho como painel: se ele abrir por cima do
-			// vídeo, o vídeo sai da frente enquanto o cursor estiver nele
-			// (senão as opções ficariam escondidas atrás do vídeo).
-			g.Custom(registrarPainel),
-		),
+		g.Popup("##menuSistema").Layout(opcoes...),
 	)
 
 	// ÁREA PRINCIPAL (o retângulo "vermelho" do desenho do usuário): fica
@@ -747,21 +770,10 @@ func janelaMusica() {
 	// Separada, cada um vive na sua janelinha, como sempre.
 	juntado := carregado && visivel && playerJuntoDaMusica()
 
+	// Nada de botões aqui: a área principal fica inteira para o vídeo. As duas
+	// ações que moravam nesta faixa ("Sem video" e "Parar") estão no menuzinho
+	// da engrenagem, logo acima.
 	principal := []g.Widget{}
-	if carregado {
-		rotuloVideo := "Ver video"
-		if visivel {
-			rotuloVideo = "Sem video (so escutar)"
-		}
-		principal = append(principal,
-			g.Row(
-				g.Button(rotuloVideo).Size(160, 26).OnClick(alternarVideo),
-				g.Style().
-					SetColor(g.StyleColorText, pal.Destaque).
-					To(g.Button("Parar").Size(78, 26).OnClick(fecharPlayer)),
-			),
-		)
-	}
 	if juntado {
 		principal = append(principal, g.Custom(videoDentroDaMusica))
 	}
@@ -769,19 +781,30 @@ func janelaMusica() {
 	// RODAPÉ: os botões de mídia (anterior / play-pause / próxima),
 	// posicionados por coordenada — cada um no seu lugar exato, centralizados
 	// na área principal.
-	principal = append(principal, g.Custom(rodapeDeMidia))
+	//
+	// Podem ser desligados na aba Config: aí a faixa deles (e a do volume)
+	// deixa de existir e o vídeo ocupa o painel INTEIRO. Veja mostrarControles.
+	if mostrarControles {
+		principal = append(principal, g.Custom(rodapeDeMidia))
+	}
 
-	g.Window(titulo+"###musica").Pos(basePX+posMusicaX, basePY+posMusicaY).Size(356, 268).Layout(
-		g.Row(g.Column(menu...), g.Column(principal...)),
-		// O slider de volume fica EM PÉ, colado na borda direita, sempre
-		// acompanhando o painel (o traço verde do desenho do usuário) — fora
-		// do caminho do vídeo.
-		g.Custom(sliderVolumeVertical),
-		g.Custom(func() {
-			registrarPainel()
-			espiarJanela()
-		}),
-	)
+	// O slider de volume fica EM PÉ, colado na borda direita, sempre
+	// acompanhando o painel (o traço verde do desenho do usuário) — fora do
+	// caminho do vídeo. Some junto com os botões de mídia.
+	conteudo := []g.Widget{g.Row(g.Column(menu...), g.Column(principal...))}
+	if mostrarControles {
+		conteudo = append(conteudo, g.Custom(sliderVolumeVertical))
+	}
+	conteudo = append(conteudo, g.Custom(func() {
+		registrarPainel()
+		espiarJanela()
+	}))
+
+	// A altura padrão (300) é a que faz os serviços e a engrenagem caberem sem
+	// rolar. É só o tamanho INICIAL: o ImGui guarda o que o dono redimensionar
+	// no `imgui.ini`, e a partir daí manda o arquivo dele.
+	g.Window(titulo+"###musica").Pos(basePX+posMusicaX, basePY+posMusicaY).Size(356, 300).
+		Layout(conteudo...)
 }
 
 // sliderVolumeVertical desenha o volume em pé, rente à borda direita do
@@ -835,11 +858,19 @@ func janelaConfig() {
 	}
 
 	g.Window("Config###config").IsOpen(&configAberto).
-		// Altura 600: o conteúdo da Config cresceu de novo (tema, opacidade,
-		// três botões, QUATRO opções, a situação das listas e a dica do
-		// Insert). Com menos que isso vira barra de rolagem e o último item
-		// fica escondido. Se acrescentar item, aumente aqui.
-		Pos(basePX+posConfigX, basePY+posConfigY).Size(300, 600).Layout(
+		// Altura 640: é o máximo que cabe na tela. A Config nasce em y=398,
+		// então 398+640 = 1038 — mais do que isso e ela entra por baixo da
+		// barra de tarefas numa tela de 1080.
+		//
+		// ⚠️ Seja honesto sobre o que isto NÃO resolve: o conteúdo da Config já
+		// é mais alto do que 640 (tema, opacidade, três botões, CINCO opções, a
+		// situação das listas e as dicas do rodapé), então SOBRA uma barra de
+		// rolagem e as últimas linhas de dica ficam abaixo da dobra. Quem
+		// quiser ver tudo de uma vez estica o painel pelo canto de baixo.
+		//
+		// Ou seja: acrescentar item aqui não é aumentar a altura (não há para
+		// onde) — é encurtar algum texto que já existe.
+		Pos(basePX+posConfigX, basePY+posConfigY).Size(300, 640).Layout(
 		textoFraco("Tema de cores"),
 		g.Combo("##tema", nomes[PresetAtual], nomes, &PresetAtual).Size(-1),
 
@@ -857,6 +888,12 @@ func janelaConfig() {
 		// tela (ou ficar recolhido em lugar difícil), este botão traz todos de
 		// volta para as posições originais.
 		g.Button("Recolocar paineis").Size(-1, 26).OnClick(recolocarPaineis),
+
+		g.Dummy(1, 4),
+		// Desligando, o painel Música perde a faixa dos botões de mídia e o
+		// slider de volume — e o vídeo ocupa o painel inteiro.
+		g.Checkbox("Mostrar controles no painel", &mostrarControles),
+		textoFraco("Desligado: o video ocupa tudo."),
 
 		g.Separator(),
 
@@ -994,12 +1031,25 @@ func playerJuntoDaMusica() bool {
 func videoDentroDaMusica() {
 	pos := imgui.WindowPos()
 	tam := imgui.WindowSize()
-	cur := imgui.CursorScreenPos() // logo abaixo do slider e da linha de vídeo
+	// Onde o desenho parou: hoje é o topo da área principal (não há mais nada
+	// desenhado antes do vídeo). Ler o cursor em vez de escrever uma altura
+	// fixa é o que fez o vídeo crescer sozinho quando a faixa de botões
+	// "Sem video / Parar" saiu daqui para o menu da engrenagem.
+	cur := imgui.CursorScreenPos()
+
+	// O que reservar à direita e embaixo. Com os controles desligados na
+	// Config não há slider de volume nem faixa de botões, então o vídeo avança
+	// sobre esse espaço — é o que faz ele ocupar o painel inteiro.
+	reservaDireita, reservaEmbaixo := float32(8), float32(8)
+	if mostrarControles {
+		reservaDireita = 34 // o slider de volume em pé
+		reservaEmbaixo = 52 // a faixa dos botões de mídia
+	}
 
 	vx := pos.X + 4 + largBotaoServico + 8
 	vy := cur.Y + 4
-	vl := pos.X + tam.X - 34 - vx // para antes do slider de volume em pé
-	va := pos.Y + tam.Y - 52 - vy // até a faixa do rodapé
+	vl := pos.X + tam.X - reservaDireita - vx
+	va := pos.Y + tam.Y - reservaEmbaixo - vy
 
 	// Painel pequeno demais para caber vídeo: fica só o som.
 	if vl < 60 || va < 60 {
@@ -1033,6 +1083,20 @@ func videoDentroDaMusica() {
 // manterCarregado é a opção "um navegador por serviço" (aba Config). Começa
 // desligada: o padrão é o modo econômico, de um navegador só.
 var manterCarregado bool
+
+// mostrarControles é a opção "Mostrar controles no painel" (aba Config).
+//
+// LIGADA (o padrão): o painel Música tem a faixa dos botões de mídia embaixo
+// (anterior / play-pause / próxima) e o slider de volume em pé na borda direita.
+//
+// DESLIGADA: as duas somem e o vídeo passa a ocupar o painel INTEIRO — é o
+// "modo só imagem", para quem juntou a aba do player no painel e quer a tela
+// toda para o vídeo. O volume continua no volume do Windows e as teclas de
+// mídia do teclado seguem funcionando; só os botões daqui é que saem.
+//
+// Começa LIGADA de propósito: uma opção nova não pode mudar sozinha o painel de
+// quem já usa o Nimbus.
+var mostrarControles = true
 
 // bloquearAnuncios é a opção "Bloquear anuncios" (aba Config). Começa LIGADA,
 // e o valor inicial tem de ser o MESMO do player.BloquearAnuncios — senão a
@@ -1261,6 +1325,9 @@ var servicos = []servico{
 	{"music", "YouTube Music", rgb(255, 0, 0), "playCirculo", ""},
 	{"netflix", "Netflix", rgb(229, 9, 20), "letra", "N"},
 	{"disney", "Disney+", rgb(90, 175, 255), "letra", "D+"},
+	// WhatsApp não é vídeo: é para ler e responder mensagem sem sair do jogo /
+	// do trabalho. O verde é o da marca (37,211,102).
+	{"whatsapp", "WhatsApp", rgb(37, 211, 102), "letra", "W"},
 }
 
 // Tamanho de cada botão de serviço, em pixels.
@@ -1269,11 +1336,54 @@ const (
 	altBotaoServico  = 40
 )
 
+// colunaDeServicos desenha as logos dos serviços numa área que ROLA, deixando
+// reservado o espaço da engrenagem que vem depois dela.
+//
+// ⚠️ Por que não desenhar os botões direto, um embaixo do outro (era assim
+// antes): a coluna cresce a cada serviço novo. Ao chegar no QUINTO (o WhatsApp)
+// ela passou da altura do painel e empurrou a engrenagem para FORA — e junto
+// com ela sumiram Sistema, Config, Sair e as opções do player, sem nenhum
+// aviso. Pior: o ImGui guarda o tamanho do painel no `imgui.ini`, então só
+// aumentar a altura padrão não consertaria para quem já usa o Nimbus.
+//
+// Reservando o lugar da engrenagem PRIMEIRO, ela nunca mais sai da tela: quem
+// sobra fica na área de rolagem (roda do mouse) — e isso vale para o sexto,
+// sétimo serviço, quantos vierem.
+func colunaDeServicos() {
+	// O que sobra de altura, menos o que a engrenagem vai precisar.
+	sobra := imgui.ContentRegionAvail().Y - altBotaoMenu - espacoEntreItens
+	if sobra < altBotaoServico {
+		sobra = altBotaoServico // painel baixíssimo: mostra pelo menos um
+	}
+
+	// A largura pede a barra de rolagem inclusa, senão ela cobriria as logos.
+	tamanho := imgui.Vec2{X: largBotaoServico + larguraDaRolagem, Y: sobra}
+
+	// Sem moldura e sem fundo próprio: é só um recorte, tem de parecer parte
+	// do painel (o "sem_fundo" abaixo) e não uma caixinha dentro dele.
+	const semFundo = 0
+	if imgui.BeginChildStrV("##servicos", tamanho, semFundo, semFundo) {
+		for i := range servicos {
+			botaoServico(servicos[i]).Build()
+		}
+	}
+	imgui.EndChild()
+}
+
+// Alturas usadas para reservar espaço na coluna da esquerda. Ficam aqui, e não
+// escritas duas vezes, porque a conta da colunaDeServicos TEM de casar com o
+// tamanho real do botão da engrenagem.
+const (
+	altBotaoMenu     = 32 // o botão da engrenagem
+	espacoEntreItens = 4  // o respiro que o ImGui põe entre dois itens
+	larguraDaRolagem = 14 // a barrinha de rolagem da área dos serviços
+)
+
 // botaoMenuSistema é o botão com a ENGRENAGEM no pé do menu lateral: abre o
 // menuzinho com Sistema, Config e Sair. A engrenagem é desenhada à mão (um
 // anel com seis dentes) porque a fonte do ImGui não tem esse símbolo.
 func botaoMenuSistema() {
-	const altura = 32
+	const altura = altBotaoMenu
 
 	canto := imgui.CursorScreenPos()
 	imgui.InvisibleButton("menu_sistema", imgui.Vec2{X: largBotaoServico, Y: altura})

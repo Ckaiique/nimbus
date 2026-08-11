@@ -137,8 +137,8 @@ func TestExcecaoDaEasyListImpedeOBloqueio(t *testing.T) {
 //
 // Cenário real e nada improvável: a EasyList inclui um servidor de vídeo do
 // YouTube porque ele também entrega anúncio. Num navegador comum isso custa um
-// vídeo que não toca. No Nimbus custaria as QUATRO coisas que o programa existe
-// para mostrar — e o dono veria só uma tela preta.
+// vídeo que não toca. No Nimbus custaria justamente os SERVIÇOS que o programa
+// existe para abrir — e o dono veria só uma tela preta.
 func TestProtegidoVenceRegraDaEasyList(t *testing.T) {
 	trocarLista(t, listaDeBrinquedo(
 		"googlevideo.com",             // a EasyList mandando bloquear o vídeo
@@ -146,6 +146,7 @@ func TestProtegidoVenceRegraDaEasyList(t *testing.T) {
 		"nflxvideo.net",
 		"dssott.com",
 		"youtube.com",
+		"whatsapp.net",         // de onde vêm foto de perfil, áudio e imagem da conversa
 		"anuncio-de-teste.com", // uma regra normal, para provar que o resto funciona
 	))
 
@@ -155,6 +156,8 @@ func TestProtegidoVenceRegraDaEasyList(t *testing.T) {
 		"https://ipv4-c001.nflxvideo.net/range/0-100",
 		"https://vod-x.media.dssott.com/x.m3u8",
 		"https://www.youtube.com/watch?v=abc",
+		"https://web.whatsapp.com/",
+		"https://mmg.whatsapp.net/d/f/foto.jpg",
 	}
 	for _, u := range protegidos {
 		if DeveBloquear(u) {

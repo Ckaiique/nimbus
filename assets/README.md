@@ -18,10 +18,23 @@ recompilar nada.
 | `music.png` | YouTube Music |
 | `netflix.png` | Netflix |
 | `disney.png` | Disney+ |
+| `whatsapp.png` | WhatsApp Web |
 
 **O nome do arquivo importa:** tem de ser igual ao campo `Qual` na lista
 `servicos` (em `internal/ui/overlay.go`) mais `.png`. É assim que o programa
 acha a imagem de cada botão.
+
+**Como converter uma logo baixada da internet:** hoje quase tudo vem em **WebP**
+(às vezes até sem extensão no nome). Rode, na pasta do projeto:
+
+```
+go run ./ferramentas/converter-logo caminho\da\imagem whatsapp
+```
+
+⚠️ **Não use o Paint nem conversor de site.** O leitor de WebP do próprio Windows
+falha com WebP transparente: já entregou uma logo **toda preta**. A ferramenta
+acima usa o mesmo leitor que o Nimbus usa por dentro — se ficar certo nela, fica
+certo no botão.
 
 **Formato:** PNG (com ou sem fundo transparente) ou JPG. O programa desenha a
 imagem **sem distorcer** — calcula o maior tamanho que cabe no botão mantendo a
@@ -29,7 +42,7 @@ proporção — e arredonda os cantos, o que dá cara de ícone de aplicativo na
 logos que têm fundo próprio (Netflix, Disney+).
 
 **Se um arquivo faltar** ou estiver corrompido, o botão desenha a marca em vetor
-(um crachá de play, um "N", um "D+"). Nunca fica um botão vazio.
+(um crachá de play, um "N", um "D+", um "W"). Nunca fica um botão vazio.
 
 ## Se quiser trocar o ícone do programa
 

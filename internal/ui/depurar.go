@@ -40,8 +40,14 @@ var (
 	// NIMBUS_DEBUG_TROCAR=music -> troca para esse serviço depois de ~6s
 	// NIMBUS_DEBUG_CONFIG=1 -> abre a aba Config já ao iniciar (útil para
 	// tirar as imagens do README sem precisar clicar).
-	abrirConfig      = os.Getenv("NIMBUS_DEBUG_CONFIG") == "1"
-	jaAbriuConfig    bool
+	abrirConfig   = os.Getenv("NIMBUS_DEBUG_CONFIG") == "1"
+	jaAbriuConfig bool
+
+	// NIMBUS_DEBUG_SEM_CONTROLES=1 -> começa com a opção "Mostrar controles no
+	// painel" DESLIGADA (o vídeo ocupando o painel inteiro). Existe para
+	// conferir esse modo sem precisar achar e clicar na caixinha da Config.
+	semControlesNoInicio = os.Getenv("NIMBUS_DEBUG_SEM_CONTROLES") == "1"
+	jaTirouOsControles   bool
 	multiNoInicio    = os.Getenv("NIMBUS_DEBUG_MULTI") == "1"
 	trocarPara       = os.Getenv("NIMBUS_DEBUG_TROCAR")
 	quadrosAteTrocar int
@@ -74,6 +80,13 @@ func aplicarAuxiliaresDeTeste() {
 	if abrirConfig && !jaAbriuConfig {
 		jaAbriuConfig = true
 		configAberto = true
+	}
+
+	// Também uma vez só, pelo mesmo motivo: assim dá para marcar a caixinha de
+	// volta e ver os controles reaparecerem.
+	if semControlesNoInicio && !jaTirouOsControles {
+		jaTirouOsControles = true
+		mostrarControles = false
 	}
 
 	if multiNoInicio && !manterCarregado {
