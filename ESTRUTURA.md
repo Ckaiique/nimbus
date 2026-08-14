@@ -57,7 +57,10 @@ nimbus/
 │       ├── music.png
 │       ├── netflix.png
 │       ├── disney.png
-│       └── whatsapp.png
+│       ├── whatsapp.png
+│       └── originais/  ← as MESMAS logos como foram baixadas (o programa NÃO lê)
+│           ├── README.md   ← inclusive o formato de verdade de cada uma
+│           └── *.ico/.webp/.png ← guardadas para refazer a conversão um dia
 │
 ├── docs/               ← documentação extra e as imagens do README
 │   ├── README.md
@@ -148,6 +151,9 @@ nimbus/
   Quem age é o `internal/player/`, que fala com o navegador.
 - **Tudo que aparece na tela** (painéis, cores) → `internal/ui/`.
 - **Imagens e ícones** → `assets/` (lidos do disco, para trocar sem recompilar).
+  A imagem **crua**, do jeito que foi baixada, vai para
+  `assets/servicos/originais/` — assim dá para refazer a conversão sem caçar a
+  figura na internet de novo.
 - O `main.go` só **liga as partes** — não tem lógica própria.
 - `.exe` compilado → sempre em `build/` (nunca solto na raiz).
 - A `ui` conversa com a lógica **só pelas funções públicas** dos pacotes

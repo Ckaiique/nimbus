@@ -24,9 +24,12 @@
 //
 //	go run ./ferramentas/converter-logo <arquivo-de-entrada> <nome-do-serviço>
 //
-// Exemplo real (a logo do WhatsApp, baixada em WebP e sem extensão):
+// Exemplo real (a logo do WhatsApp, que foi baixada em WebP):
 //
-//	go run ./ferramentas/converter-logo ../img/whats whatsapp
+//	go run ./ferramentas/converter-logo assets\servicos\originais\whatsapp.webp whatsapp
+//
+// As imagens cruas ficam guardadas em `assets/servicos/originais/` justamente
+// para isto: refazer a conversão sem ter de achar a figura na internet de novo.
 //
 // Isso grava `assets/servicos/whatsapp.png`. O nome do serviço tem de ser
 // **igual** ao campo `Qual` da lista `servicos` (`internal/ui/overlay.go`) —
@@ -56,7 +59,7 @@ import (
 func main() {
 	if len(os.Args) != 3 {
 		fmt.Println("uso: go run ./ferramentas/converter-logo <arquivo> <nome-do-servico>")
-		fmt.Println("exemplo: go run ./ferramentas/converter-logo ../img/whats whatsapp")
+		fmt.Println(`exemplo: go run ./ferramentas/converter-logo assets\servicos\originais\whatsapp.webp whatsapp`)
 		os.Exit(2)
 	}
 	entrada, servico := os.Args[1], os.Args[2]

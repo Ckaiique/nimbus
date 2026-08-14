@@ -9,6 +9,7 @@ recompilar nada.
 | `nimbus.ico` | O ícone do Nimbus: um halo (anel) com degradê ciano → violeta. Usado na bandeja do sistema e embutido no `.exe`. Tem vários tamanhos dentro (16 a 256 pixels) — o Windows escolhe o melhor para cada lugar. |
 | `nimbus.png` | O mesmo ícone em PNG (usado pelo atalho no Linux). |
 | `servicos/` | As logos dos botões do player. |
+| `servicos/originais/` | As mesmas logos **como foram baixadas** (WebP, `.ico`...). O programa não lê nada daí: ficam guardadas só para refazer a conversão. Veja o README de lá. |
 
 ## servicos/ — as logos dos botões
 
@@ -30,6 +31,10 @@ acha a imagem de cada botão.
 ```
 go run ./ferramentas/converter-logo caminho\da\imagem whatsapp
 ```
+
+Depois de converter, **guarde a imagem crua** em `assets/servicos/originais/`,
+com o nome do serviço e a extensão de verdade dela. É o que permite refazer a
+logo no futuro sem precisar achar a figura na internet outra vez.
 
 ⚠️ **Não use o Paint nem conversor de site.** O leitor de WebP do próprio Windows
 falha com WebP transparente: já entregou uma logo **toda preta**. A ferramenta
