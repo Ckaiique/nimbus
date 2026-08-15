@@ -322,6 +322,13 @@ sendo o nome do serviço (modo múltiplo) ou a palavra `"unico"` (modo econômic
 é a função `chave()` que decide. Assim os dois modos usam o mesmo caminho de
 código.
 
+⚠️ **Ao trocar o modo, a instância que está tocando é MOVIDA de gaveta**
+(`DefinirModoMultiplo`): a chave dela muda de nome (`"unico"` ↔ nome do
+serviço) e, sem a mudança, o `DescarregarSegundoPlano` a tratava como segundo
+plano e a descarregava — marcar/desmarcar a opção na Config parava a música e
+zerava o painel. É uma **troca** (não cópia): se a gaveta nova já tiver um
+navegador ocioso, ele vai para a antiga em vez de virar janela órfã.
+
 ⚠️ **`MostrarEmbutido` só pode ser chamada ENTRE quadros** (é ela que cria
 navegador, e criar processa mensagens do Windows). A `MostrarNaTela`, usada
 durante o desenho, **nunca** cria nada.
@@ -441,15 +448,17 @@ Duas coisas que andam junto com isso:
 ### Opacidade: o vídeo precisa ser pedido à parte
 
 O slider de opacidade mexe no `StyleVarAlpha` do ImGui, que vale **só para o que
-o ImGui desenha**. O vídeo é uma janela-filha do motor do Edge, por cima — ele
-não sabe nada da nossa opacidade.
+o ImGui desenha**. O vídeo é uma janela do motor do Edge, por cima — ele não
+sabe nada da nossa opacidade.
 
-Então `player.DefinirOpacidade` pede a transparência ao próprio navegador, em
-duas partes: (1) `PutDefaultBackgroundColor` com alfa 0, para o navegador não
-pintar um fundo opaco atrás da página; (2) um CSS injetado por `Eval` que deixa
-a página com a opacidade escolhida. O CSS é **reaplicado a cada ~2 segundos**
-porque, ao trocar de página, o site monta o HTML de novo e o nosso CSS iria
-embora.
+Então `player.DefinirOpacidade` aplica a opacidade **na janela do vídeo**
+(`SetLayeredWindowAttributes`, veja a seção "na JANELA, nunca em CSS" acima). A
+interface chama isso todo quadro, e a marca de "já apliquei" fica guardada **em
+cada navegador** (`inst.opacidade`), não num valor único — com marca única, no
+modo "manter carregado" só a janela em foco recebia o slider e a segunda abria
+opaca (bug real que aconteceu). Como a opacidade fica na janela, ela **não se
+perde ao trocar de página** — o reenvio a cada 2 segundos que existia era sobra
+da época do CSS injetado e foi removido.
 
 ### Bandeja do sistema (`internal/bandeja`)
 

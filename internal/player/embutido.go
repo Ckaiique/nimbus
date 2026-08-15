@@ -44,6 +44,12 @@ type instancia struct {
 	site   string // qual serviço está carregado (vazio = página em branco)
 	naTela bool   // a janela dele está aparecendo agora
 
+	// Última opacidade aplicada NESTA janela (-1 = nenhuma ainda). É por
+	// navegador de propósito: com um valor único para todos, só a janela em
+	// foco recebia o slider — as outras (modo "manter carregado") ficavam
+	// opacas ou com um valor velho.
+	opacidade float32
+
 	// Último retângulo aplicado. Serve para NÃO repetir a chamada quando nada
 	// mudou: mexer na janela a cada quadro fazia o vídeo PISCAR.
 	x, y, larg, alt int32
@@ -118,7 +124,7 @@ func MostrarEmbutido(idJanela uintptr, qual string) bool {
 			procDestroyWindow.Call(janela)
 			return false // sem WebView2 no PC
 		}
-		inst = &instancia{nav: nav, janela: janela}
+		inst = &instancia{nav: nav, janela: janela, opacidade: -1}
 		instancias[chave(qual)] = inst
 
 		// Bloqueador de anúncios: tem de ser armado AGORA, com o navegador
@@ -158,7 +164,6 @@ func MostrarEmbutido(idJanela uintptr, qual string) bool {
 	if inst.site != qual {
 		inst.nav.Navigate(endereco)
 		inst.site = qual
-		opacidadeAtual = -1 // página nova: o CSS de opacidade tem de voltar
 	}
 
 	// Esconde as OUTRAS: no modo "manter carregado" elas continuam tocando.
@@ -238,6 +243,11 @@ func Reposicionar(x, y, larg, alt int32) {
 
 	posicionarJanelaVideo(inst.janela, x, y, larg, alt)
 
+	// Avisa o navegador que a janela dele mudou de lugar na tela. Ele precisa
+	// saber para posicionar direito os menuzinhos e caixas que abre por conta
+	// própria — sem o aviso, eles apareciam no lugar ANTIGO da janela.
+	inst.nav.NotifyParentWindowPositionChanged()
+
 	// O navegador só precisa ser reajustado quando o TAMANHO muda (mover a
 	// janela não muda a área dele).
 	if !mudouTamanho {
@@ -282,7 +292,6 @@ func FecharEmbutido() {
 
 	videoVisivel = false
 	servicoAtual = ""
-	opacidadeAtual = -1
 }
 
 // PararTodos interrompe todos os serviços, inclusive os de segundo plano.
@@ -298,7 +307,6 @@ func PararTodos() {
 	}
 	videoVisivel = false
 	servicoAtual = ""
-	opacidadeAtual = -1
 }
 
 // DescarregarSegundoPlano para os serviços que NÃO estão em foco.
@@ -338,11 +346,33 @@ func DefinirModoMultiplo(ligado bool) {
 	if ligado == ModoMultiplo {
 		return
 	}
+	antiga := chave(servicoAtual)
 	ModoMultiplo = ligado
-	DescarregarSegundoPlano()
+	nova := chave(servicoAtual)
 
 	// A "gaveta" do serviço em foco mudou de nome (de "unico" para o nome do
-	// serviço, ou o contrário). Se não houver navegador na gaveta nova, o
+	// serviço, ou o contrário). O navegador que está tocando é MOVIDO para a
+	// gaveta nova. Sem isso, ele ficava na gaveta antiga e o
+	// DescarregarSegundoPlano logo abaixo o tratava como "segundo plano":
+	// trocar a opção na Config parava a música e zerava o painel, como se o
+	// usuário tivesse clicado em "Parar".
+	//
+	// É uma TROCA (e não só uma cópia) porque a gaveta nova pode já ter um
+	// navegador ocioso de antes — ele vai para a gaveta antiga em vez de ser
+	// perdido (perder = janela e processos órfãos para sempre).
+	if servicoAtual != "" && antiga != nova {
+		instancias[antiga], instancias[nova] = instancias[nova], instancias[antiga]
+		if instancias[antiga] == nil {
+			delete(instancias, antiga)
+		}
+		if instancias[nova] == nil {
+			delete(instancias, nova)
+		}
+	}
+
+	DescarregarSegundoPlano()
+
+	// Se não houver navegador em foco (nada estava tocando), zera o estado: o
 	// próximo clique no serviço cria — sob demanda, como deve ser.
 	if inst := atual(); inst == nil {
 		servicoAtual = ""
@@ -392,42 +422,29 @@ func Focar() {
 	inst.nav.Focus()
 }
 
-// JanelaMoveu avisa o navegador que a janela-mãe mudou de lugar na tela
-// (ele precisa saber para posicionar menus e caixas de diálogo direito).
-func JanelaMoveu() {
-	for _, inst := range instancias {
-		inst.nav.NotifyParentWindowPositionChanged()
-	}
-}
-
 // ───────────────────────── opacidade do vídeo ─────────────────────────────
-
-// opacidadeAtual guarda o último valor aplicado, para não ficar mandando o
-// mesmo comando ao navegador sem necessidade.
-var opacidadeAtual float32 = -1
 
 // DefinirOpacidade deixa o VÍDEO translúcido junto com o resto da interface.
 //
 // Por que precisa de código separado: o slider de opacidade mexe no
 // "StyleVarAlpha" do ImGui, que vale só para o que o ImGui desenha. O vídeo é
-// desenhado pelo motor do Edge, numa janela-filha por cima — ele não sabe nada
-// da nossa opacidade. Então pedimos a transparência a ELE, em duas partes:
+// desenhado pelo motor do Edge, numa janela própria por cima — ele não sabe
+// nada da nossa opacidade. Então pedimos ao Windows que deixe a JANELA dele
+// translúcida (veja definirOpacidadeJanela).
 //
-//  1. o fundo do WebView2 vira transparente (senão o próprio navegador pinta
-//     um fundo opaco atrás da página e não haveria o que ver através);
-//  2. injetamos um CSS que deixa a página toda com a opacidade escolhida.
-//
-// Precisa ser reaplicado de vez em quando: ao trocar de página (abrir um
-// vídeo, por exemplo) o site monta o HTML de novo e o nosso CSS iria embora.
+// A interface chama isto todo quadro; quem evita repetir o comando é a marca
+// inst.opacidade, guardada EM CADA navegador. Assim, ao trocar para um serviço
+// já carregado (modo "manter carregado"), a janela dele também recebe o valor
+// do slider — com uma marca única para todos, só a janela em foco recebia.
 func DefinirOpacidade(alfa float32) {
 	inst := atual()
 	if inst == nil || inst.janela == 0 {
 		return
 	}
-	if alfa == opacidadeAtual {
-		return // nada mudou
+	if alfa == inst.opacidade {
+		return // esta janela já está assim
 	}
-	opacidadeAtual = alfa
+	inst.opacidade = alfa
 
 	// Opacidade uniforme na JANELA do vídeo — o Windows faz a mistura.
 	// (Antes isto era CSS injetado na página; veja definirOpacidadeJanela.)

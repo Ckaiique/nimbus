@@ -138,7 +138,7 @@ var (
 // última vez. A interface chama isto a cada quadro.
 func Pedidos() (alternar bool, sair bool) {
 	return atomic.SwapInt32(&pedidoAlternar, 0) > 0,
-		atomic.LoadInt32(&pedidoSair) > 0
+		atomic.SwapInt32(&pedidoSair, 0) > 0
 }
 
 // DefinirVisivel avisa a bandeja se o overlay está aparecendo, para o texto do

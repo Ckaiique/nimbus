@@ -1887,31 +1887,15 @@ func curto(nome string, max int) string {
 
 // ───────────────────── opacidade do vídeo ─────────────────────────────────
 
-var (
-	ultimaOpacidadeEnviada float32 = -1
-	quadrosDesdeOpacidade  int
-)
-
 // acertarOpacidadeDoVideo mantém o vídeo com a mesma opacidade da interface.
 //
-// Manda o comando ao navegador em dois casos:
-//   - quando o usuário move o slider (o valor mudou);
-//   - de dois em dois segundos, porque ao trocar de página (abrir um vídeo,
-//     por exemplo) o site monta o HTML de novo e apaga o nosso CSS.
+// Chama o player todo quadro, sem guardar nada aqui: quem sabe se a janela do
+// vídeo já está com esse valor é o PRÓPRIO player, que guarda a última
+// opacidade aplicada em cada navegador. (Antes havia uma marca única aqui e um
+// reenvio a cada 2 segundos, dos tempos em que a opacidade era CSS injetado na
+// página — hoje ela fica na janela e não se perde ao trocar de página.)
 func acertarOpacidadeDoVideo() {
-	if carregado, _, _ := player.Estado(); !carregado {
-		return
-	}
-
-	quadrosDesdeOpacidade++
-	mudou := Alfa != ultimaOpacidadeEnviada
-	naHora := quadrosDesdeOpacidade >= 120 // ~2 segundos a 60 quadros/s
-
-	if mudou || naHora {
-		player.DefinirOpacidade(Alfa)
-		ultimaOpacidadeEnviada = Alfa
-		quadrosDesdeOpacidade = 0
-	}
+	player.DefinirOpacidade(Alfa)
 }
 
 // ───────────────────── player embutido ────────────────────────────────────
