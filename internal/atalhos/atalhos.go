@@ -175,15 +175,24 @@ func MarcarSalvo() { precisaSalvar = false }
 // da lista comeria o toque do outro. Por isso perguntamos UMA vez por tecla, ao
 // juntar tudo num "retrato" (o mapa `toques`), e só depois comparamos os
 // atalhos com esse retrato.
-func Conferir() string {
+//
+// A MESMA pegadinha vale entre pacotes: a interface lê a tecla Insert (o
+// liga/desliga dos painéis) por conta própria — se nós perguntássemos de novo,
+// a resposta seria "não" e um atalho gravado com Insert nunca dispararia. Por
+// isso ela EMPRESTA o que já leu pelo `toquesJaLidos` (tecla -> foi apertada),
+// e essas teclas entram no retrato sem nova pergunta. Pode ser nil.
+func Conferir(toquesJaLidos map[uint16]bool) string {
 	// Enquanto está gravando, ninguém dispara: as teclas estão sendo apertadas
 	// para ESCOLHER o atalho, não para usá-lo.
 	if gravandoPara != "" {
-		conferirGravacao()
+		conferirGravacao(toquesJaLidos)
 		return ""
 	}
 
 	toques := map[uint16]bool{}
+	for tecla, tocada := range toquesJaLidos {
+		toques[tecla] = tocada
+	}
 	for _, a := range amarras {
 		if _, jaPerguntei := toques[a.Tecla]; jaPerguntei {
 			continue
@@ -305,18 +314,29 @@ func CancelarGravacao() {
 // Roda dentro do Conferir, uma vez por quadro. Percorrer a tabela inteira de
 // teclas custa umas 90 perguntas ao Windows — insignificante, e só acontece
 // enquanto a gravação está aberta.
-func conferirGravacao() {
+//
+// O `toquesJaLidos` é o mesmo empréstimo do Conferir: teclas que a interface
+// já leu neste quadro (o Insert). Sem ele, gravar uma combinação com Insert
+// não funcionaria — o toque já teria sido gasto lá.
+func conferirGravacao(toquesJaLidos map[uint16]bool) {
+	tocada := func(tecla uint16) bool {
+		if v, jaLida := toquesJaLidos[tecla]; jaLida {
+			return v
+		}
+		return foiApertada(tecla)
+	}
+
 	// Esc desiste (é o que qualquer programa faz, então ninguém precisa
 	// aprender). Vem antes de tudo para nunca virar atalho por acidente.
 	const vkEsc = 0x1B
-	if foiApertada(vkEsc) {
+	if tocada(vkEsc) {
 		CancelarGravacao()
 		return
 	}
 
 	m := ModsSeguradosAgora()
 	for tecla := range nomeDaTecla {
-		if tecla == vkEsc || !foiApertada(tecla) {
+		if tecla == vkEsc || !tocada(tecla) {
 			continue
 		}
 		if err := Definir(gravandoPara, m, tecla); err != nil {

@@ -245,6 +245,12 @@ func Rodar(controle *audio.Controle) {
 		g.MasterWindowFlagsFrameless|g.MasterWindowFlagsFloating|
 			g.MasterWindowFlagsTransparent|g.MasterWindowFlagsHidden,
 	)
+
+	// O giu nasce limitado a 30 FPS (o padrão da biblioteca). Com a janela
+	// cobrindo todos os monitores, esse ritmo engasgado vira atraso visível ao
+	// arrastar os painéis. 60 FPS acompanha o vsync da tela (que é 60 Hz) sem
+	// custar o dobro: acima disso o Windows recomporia por nós de qualquer jeito.
+	janela.SetTargetFPS(60)
 	janela.SetPos(vx, vy)
 	// Fundo invisível por DOIS caminhos ao mesmo tempo: alfa 0 (vidro do DWM) e
 	// a cor-chave (que funciona mesmo sem o vidro). Veja fundoInvisivel.
@@ -573,14 +579,23 @@ func antesDoQuadro() {
 
 	// Insert liga/desliga o overlay (o bit 1 = "foi apertada desde a última
 	// verificação", para contar só uma vez por toque).
-	if estado, _, _ := procGetAsyncKeyState.Call(teclaInsert); estado&1 != 0 {
-		menuAberto = !menuAberto
-	}
+	//
+	// ⚠️ O toque é lido AQUI, uma vez só, e EMPRESTADO ao conferirAtalhos: o
+	// Windows apaga o bit na primeira pergunta, então perguntar de novo lá
+	// responderia "não" — era o que fazia um atalho gravado com Insert (ex.:
+	// Alt+Insert) nunca disparar. E o liga/desliga só acontece se o toque NÃO
+	// foi usado por um atalho nem pela gravação de um atalho novo.
+	estadoInsert, _, _ := procGetAsyncKeyState.Call(teclaInsert)
+	insertTocada := estadoInsert&1 != 0
 
 	// Os atalhos configuráveis (Alt+1 abre o YouTube...). Lidos do mesmo jeito
 	// que o Insert e no mesmo lugar, para toda a leitura de teclado do overlay
 	// ficar junta — quem for procurar acha de primeira.
-	conferirAtalhos()
+	insertUsada := conferirAtalhos(map[uint16]bool{teclaInsert: insertTocada})
+
+	if insertTocada && !insertUsada {
+		menuAberto = !menuAberto
+	}
 
 	// Pedidos vindos do ícone na bandeja do sistema (clique ou menu). Eles
 	// chegam de outra thread, por isso só viram "bandeirinhas" que a gente
@@ -1049,6 +1064,20 @@ func janelaConfig() {
 		textoFraco("Corta banners e rastreadores. No"),
 		textoFraco("YouTube, pula o anuncio sozinho."),
 
+		g.Dummy(1, 4),
+
+		// Compartilhar a tela (Discord, OBS...) mostra o vídeo PRETO por causa
+		// da proteção dos sites (Netflix, Disney+) — e a proteção SÓ existe
+		// quando o navegador usa a placa de vídeo. Ligando, o navegador
+		// desenha com o processador e o vídeo aparece na captura.
+		g.Checkbox("Permitir gravar a tela", &desligarAceleracaoDeHardware).
+			OnChange(func() { player.DefinirAceleracaoDesligada(desligarAceleracaoDeHardware) }),
+		textoFraco("Discord, OBS...: sem isto o video"),
+		textoFraco("fica preto na captura. Desliga a"),
+		textoFraco("placa de video do navegador. Vale"),
+		textoFraco("para players novos; reinicie o"),
+		textoFraco("Nimbus se ja estiver com um aberto."),
+
 		// A situação das listas. É recalculada a cada quadro (a Config inteira
 		// é montada de novo), então o texto acompanha sozinho o que a
 		// atualização em segundo plano estiver fazendo.
@@ -1238,9 +1267,18 @@ var manterCarregado bool
 var mostrarControles = true
 
 // bloquearAnuncios é a opção "Bloquear anuncios" (aba Config). Começa LIGADA,
-// e o valor inicial tem de ser o MESMO do player.BloquearAnuncios — senão a
-// caixinha mostraria uma coisa e o programa faria outra.
-var bloquearAnuncios = player.BloquearAnuncios
+// e o valor inicial tem de ser o MESMO do player — senão a caixinha mostraria
+// uma coisa e o programa faria outra.
+var bloquearAnuncios = player.BloqueioDeAnunciosLigado()
+
+// desligarAceleracaoDeHardware é a opção "Permitir gravar a tela" (aba
+// Config). Começa DESLIGADA — a placa de vídeo do navegador deixa o vídeo
+// mais bonito, e desligar só é necessário para capturas (Discord, OBS...),
+// que ficam com o vídeo PRETO por causa da proteção dos sites.
+//
+// O valor inicial tem de ser o MESMO do player — senão a caixinha mostraria
+// uma coisa e o programa faria outra.
+var desligarAceleracaoDeHardware = player.AceleracaoDesligada()
 
 // atualizarListasSozinho é a caixinha "Atualizar listas sozinho" (aba Config).
 // Começa com o mesmo valor do atualizador — senão a caixinha mostraria uma
@@ -1989,8 +2027,15 @@ func acoesDeAtalho() []atalhos.Acao {
 
 // conferirAtalhos lê o teclado e executa a ação que a pessoa disparou. Roda uma
 // vez por quadro, junto da leitura da tecla Insert.
-func conferirAtalhos() {
-	acao := atalhos.Conferir()
+//
+// Recebe as teclas que o chamador já leu neste quadro (hoje, só o Insert) e
+// devolve se o toque do Insert foi USADO — por um atalho que tem Insert na
+// combinação, ou pela gravação de um atalho novo (as teclas apertadas ali são
+// para escolher a combinação, não para usar). Quem chamou usa essa resposta
+// para não alternar os painéis por cima.
+func conferirAtalhos(toquesJaLidos map[uint16]bool) (insertUsada bool) {
+	gravando := atalhos.Gravando() != ""
+	acao := atalhos.Conferir(toquesJaLidos)
 
 	// Um único lugar grava o arquivo, e é aqui: assim nenhum botão da tela
 	// precisa lembrar de salvar (e esquecer num deles).
@@ -1999,7 +2044,10 @@ func conferirAtalhos() {
 	}
 
 	if acao == "" {
-		return
+		return gravando
+	}
+	if a, tem := atalhos.Do(acao); tem && a.Tecla == teclaInsert {
+		insertUsada = true
 	}
 
 	switch acao {
@@ -2025,6 +2073,7 @@ func conferirAtalhos() {
 		menuAberto = true
 		abrirPlayer(acao)
 	}
+	return insertUsada
 }
 
 // alternarVideo esconde/mostra o vídeo. Esconder NÃO para o som —

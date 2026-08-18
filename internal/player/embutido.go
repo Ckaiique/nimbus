@@ -34,6 +34,9 @@
 package player
 
 import (
+	"os"
+	"sync/atomic"
+
 	"github.com/jchv/go-webview2/pkg/edge"
 )
 
@@ -68,6 +71,46 @@ var (
 )
 
 const chaveUnica = "unico"
+
+// ─────────────── compartilhar a tela (Discord, OBS...): ─────────────────────
+// desligarAceleracaoDeHardware é a opção "Permitir gravar a tela" (aba Config).
+//
+// SOBRE O PROBLEMA: sites com proteção de conteúdo (Netflix, Disney+) só
+// mostram o vídeo quando ele é desenhado PELA PLACA DE VÍDEO — a proteção é
+// justamente esse caminho especial, que é invisível para capturas de tela.
+// Por isso, ao compartilhar a tela (Discord, OBS...), o vídeo aparece PRETO.
+//
+// SOBRE A SOLUÇÃO: com a opção ligada, o navegador nasce dizendo ao motor do
+// Edge para NÃO usar a placa de vídeo (a variável de ambiente
+// WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS, que o próprio WebView2 lê). Aí o
+// vídeo passa a ser desenhado pelo processador, como qualquer outra janela —
+// e aparece na captura.
+//
+// Custos: o desenho fica mais pesado para o processador, e a Netflix limita
+// a qualidade do vídeo quando ele não é desenhado pela placa de vídeo.
+// Começa DESLIGADA: o padrão (placa de vídeo) deixa o vídeo mais bonito.
+var desligarAceleracaoDeHardware atomic.Bool
+
+// AceleracaoDesligada diz se o navegador deve nascer SEM placa de vídeo.
+func AceleracaoDesligada() bool { return desligarAceleracaoDeHardware.Load() }
+
+// DefinirAceleracaoDesligada liga/desliga o modo de compartilhar a tela.
+func DefinirAceleracaoDesligada(ligada bool) { desligarAceleracaoDeHardware.Store(ligada) }
+
+// aplicarArgumentosDoNavegador ajusta o WebView2 para respeitar a escolha de
+// compartilhar tela, ANTES de criar um navegador novo (é no momento da
+// criação que o motor lê a variável de ambiente).
+//
+// ⚠️ Vale só para navegador NOVO: o motor do Edge, uma vez criado, mantém a
+// escolha antiga até ele ser recriado — se já houver um player aberto, o
+// Nimbus precisa ser reaberto para a troca valer (é o que a Config explica).
+func aplicarArgumentosDoNavegador() {
+	if desligarAceleracaoDeHardware.Load() {
+		os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--disable-gpu")
+	} else {
+		os.Unsetenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
+	}
+}
 
 // chave diz em qual "gaveta" fica o navegador daquele serviço.
 func chave(qual string) string {
@@ -118,6 +161,11 @@ func MostrarEmbutido(idJanela uintptr, qual string) bool {
 		if !ok {
 			return false
 		}
+
+		// A escolha de "compartilhar a tela" vale daqui em diante: o motor
+		// lê os argumentos no momento da criação (veja
+		// aplicarArgumentosDoNavegador).
+		aplicarArgumentosDoNavegador()
 
 		nav := edge.NewChromium()
 		if !nav.Embed(janela) {

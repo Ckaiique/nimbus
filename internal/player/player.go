@@ -75,6 +75,11 @@ func Rodar(qual string) {
 
 	titulo := titulos[qual] + " - mini player"
 
+	// Respeita a opção "Permitir gravar a tela" (aba Config) também aqui: a
+	// captura de tela não sabe se o navegador mora dentro do overlay ou numa
+	// janela própria, então o vídeo preto apareceria do mesmo jeito.
+	aplicarArgumentosDoNavegador()
+
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
 		AutoFocus: true,
 		WindowOptions: webview2.WindowOptions{

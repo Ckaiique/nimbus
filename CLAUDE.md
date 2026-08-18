@@ -105,6 +105,34 @@ E ao abrir o player chamamos `SetForegroundWindow` + `player.Focar()`
 Se algum dia aparecer um campo de texto nos painéis do ImGui, é só incluí-lo no
 `precisaTeclado()`.
 
+### Compartilhar a tela: "Permitir gravar a tela" (opção na aba Config)
+
+O sintoma: ao compartilhar a tela (Discord, OBS...), o vídeo da Netflix,
+Disney+ etc. aparece **preto** — o som continua, só a imagem some.
+
+O motivo: esses sites usam proteção de conteúdo (DRM) que **só existe quando o
+desenho passa pela placa de vídeo**. A proteção é justamente esse caminho
+especial: o vídeo nunca vira pixels comuns da janela, por isso a captura de
+tela não tem o que ler. Disparou a "tela preta".
+
+A solução: a opção ligada faz o navegador nascer com
+`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--disable-gpu` — o motor do Edge passa a
+desenhar **com o processador**, o vídeo vira pixels comuns e a captura mostra.
+
+Três coisas que não podem ser mexidas sem entender:
+
+1. **A variável é lida no momento em que o navegador é CRIADO.** Por isso a
+   aplicação fica em `aplicarArgumentosDoNavegador()` (no pacote `player`),
+   chamada antes de criar um navegador — tanto no embutido quanto na janelinha
+   separada. Depois de criado, o motor do Edge mantém a escolha antiga até o
+   Nimbus reiniciar (por isso o texto da Config fala em "proxima vez").
+2. **Custo real:** desenho pelo processador pesa mais na máquina, e a Netflix
+   limita a qualidade do vídeo quando ele não é desenhado pela placa de vídeo.
+   Por isso a opção começa DESLIGADA — o padrão é o vídeo bonito.
+3. **`--disable-gpu` é o mesmo limite que desligar "usar aceleração de
+   hardware" num navegador comum** — nada além disso. Não é um truque novo:
+   é o caminho que os próprios navegadores oferecem no menu de configuração.
+
 ### 🚫 Nunca pintar a tela inteira (três cores proibidas)
 
 O ImGui tem três cores que ele usa para pintar **a tela toda**:
@@ -581,7 +609,12 @@ Quatro coisas para não mexer sem entender (as duas primeiras têm teste):
    `GetAsyncKeyState` ("foi apertada desde a última pergunta") é **apagado pelo
    Windows ao responder**: perguntar duas vezes sobre a mesma tecla faz a segunda
    responder "não". Sem o "retrato" (o mapa `toques`), Alt+1 comeria o toque de
-   um Ctrl+1.
+   um Ctrl+1. A mesma pegadinha vale **entre pacotes**: a tecla **Insert** é
+   lida pela interface (o liga/desliga dos painéis) e **emprestada** ao
+   `Conferir` pelo parâmetro `toquesJaLidos` — antes o liga/desliga gastava o
+   toque e um atalho gravado com Insert (Alt+Insert) nunca disparava. E só
+   alterna os painéis se o toque **não** foi usado por um atalho nem pela
+   gravação de um.
 4. **`modificadoresSegurados` exige exatidão** — Alt+1 não pode disparar com
    Ctrl+Alt+1 segurado (no teclado brasileiro o AltGr manda Ctrl+Alt junto).
 

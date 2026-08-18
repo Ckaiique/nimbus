@@ -18,18 +18,31 @@
 package player
 
 import (
+	"sync/atomic"
+
 	"github.com/jchv/go-webview2/pkg/edge"
 
 	"nimbus/internal/adblock"
 )
 
-// BloquearAnuncios é a opção "Bloquear anuncios" da aba Config. Começa LIGADA
-// porque é o que o dono do PC quer no dia a dia; quem não quiser desmarca.
+// bloquearAnuncios é a opção "Bloquear anuncios" da aba Config. Começa LIGADA
+// (no init logo abaixo) porque é o que o dono do PC quer no dia a dia; quem
+// não quiser desmarca.
 //
 // A troca vale NA HORA, sem recarregar página nenhuma: o filtro consulta esta
 // variável a cada pedido, e o script da página consulta a chave que o
 // DefinirBloqueioDeAnuncios manda.
-var BloquearAnuncios = true
+//
+// É atômica porque cruza threads: quem ESCREVE é a interface (a caixinha da
+// Config) e quem LÊ é o decidirPedido, chamado pelo WebView2 nos callbacks
+// dele. É o mesmo cuidado que a bandeja já toma com as bandeirinhas dela.
+var bloquearAnuncios atomic.Bool
+
+func init() { bloquearAnuncios.Store(true) }
+
+// BloqueioDeAnunciosLigado diz se o bloqueador está ligado agora (é o que a
+// Config usa para desenhar a caixinha).
+func BloqueioDeAnunciosLigado() bool { return bloquearAnuncios.Load() }
 
 // prepararBloqueio arma o bloqueador num navegador recém-criado.
 //
@@ -59,7 +72,7 @@ func prepararBloqueio(nav *edge.Chromium) {
 	// do conteúdo do site. Logo em seguida vai a chave dizendo se ele está
 	// ligado agora — porque o navegador pode nascer com a opção já desmarcada.
 	nav.Init(adblock.ScriptDeLimpeza())
-	nav.Init(adblock.ChaveDeDesligar(BloquearAnuncios))
+	nav.Init(adblock.ChaveDeDesligar(bloquearAnuncios.Load()))
 }
 
 // decidirPedido é chamada pelo navegador a CADA coisa que a página pede.
@@ -72,7 +85,7 @@ func decidirPedido(
 	pedido *edge.ICoreWebView2WebResourceRequest,
 	resposta *edge.ICoreWebView2WebResourceRequestedEventArgs,
 ) {
-	if !BloquearAnuncios || nav == nil || pedido == nil || resposta == nil {
+	if !bloquearAnuncios.Load() || nav == nil || pedido == nil || resposta == nil {
 		return
 	}
 
@@ -104,17 +117,17 @@ func decidirPedido(
 //
 // São duas metades, e as duas precisam ser avisadas:
 //
-//	o filtro de endereços  -> lê a variável BloquearAnuncios a cada pedido;
+//	o filtro de endereços  -> lê a variável bloquearAnuncios a cada pedido;
 //	o script dentro da página -> lê a chave que mandamos aqui embaixo.
 //
 // O Eval avisa a página que já está aberta; o Init avisa as PRÓXIMAS (o script
 // principal não pode ser "desregistrado", mas ele consulta essa chave a cada
 // volta, e o último Init registrado é o que vale para a página seguinte).
 func DefinirBloqueioDeAnuncios(ligado bool) {
-	if ligado == BloquearAnuncios {
+	if ligado == bloquearAnuncios.Load() {
 		return
 	}
-	BloquearAnuncios = ligado
+	bloquearAnuncios.Store(ligado)
 
 	chave := adblock.ChaveDeDesligar(ligado)
 	for _, inst := range instancias {
